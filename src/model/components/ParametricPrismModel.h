@@ -39,26 +39,47 @@ namespace robogen {
  */
 	class ParametricPrismModel: public Model {
 
-	public:
+		public:
 
-	static const float MASS_SLOT;
-	static const float MASS_CONNECTION_PER_M;
-	static const float SLOT_WIDTH;
-	static const float SLOT_THICKNESS;
-	static const float CYLINDER_RADIUS;
-	static const float CONNECTION_PART_THICKNESS;
-	static const float CONNECTION_PART_WIDTH;
+		static const float MASS_SLOT;
+		static const float MASS_CONNECTION_PER_M;
+		static const float SLOT_WIDTH;
+		static const float SLOT_THICKNESS;
+		static const float CONNECTION_PART_THICKNESS;
+		static const float CONNECTION_PART_WIDTH;
 
-	/**
-	 * Initialize a parametric brick model
-	 *
-	 * @param odeWorld
-	 * @param odeSpace
-	 * @param numberFace = number of prism face (without counting the face on the top and the bottom)
-	 */
-	//ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace, std::string id,
-	//		int numberFace);
+		/**
+		 * Initialize a parametric brick model
+		 *
+		 * @param odeWorld
+		 * @param odeSpace
+		 * @param numberFace = number of prism face (without counting the face on the top and the bottom)
+		 */
+		ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace, std::string id,
+				int numberFace);
 
+		virtual ~ParametricPrismModel();
 
+		virtual bool initModel();
+
+		virtual boost::shared_ptr<SimpleBody> getRoot();
+
+		virtual boost::shared_ptr<SimpleBody> getSlot(unsigned int i);
+
+		virtual osg::Vec3 getSlotPosition(unsigned int i);
+
+		virtual osg::Vec3 getSlotOrientation(unsigned int i);
+
+		virtual osg::Vec3 getSlotAxis(unsigned int i);
+
+		inline int getNumberFace() {
+			return numberFace_;
+		}
+		private:
+
+			int numberFace_;
+
+			//compléter le boost une fois compris sont utilité
+			//boost::shared_ptr<SimpleBody> brickRoot_, brickTail_;
 	}
 }

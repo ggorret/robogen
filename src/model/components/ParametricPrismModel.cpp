@@ -28,10 +28,46 @@
  * @(#) $Id$
  */
 
-#include "model/components/ParametricBrickModel.h"
+#include "model/components/ParametricPrismModel.h"
 
 namespace robogen {
 
+	const float ParametricPrismModel::MASS_SLOT = inGrams(1);
+	const float ParametricPrismModel::MASS_CONNECTION_PER_M = inGrams(1.37) * 100.;
+	const float ParametricPrismModel::SLOT_WIDTH = inMm(34);
+	const float ParametricPrismModel::SLOT_THICKNESS = inMm(1.5);
 
+	//Je ne sais pas ce que ça fait
+	ParametricPrismModel::ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace,
+			std::string id, int numberFace):
+			Model(odeWorld, odeSpace, id),
+			numberFace_(numberFace){
+	}
 
+	ParametricPrismModel::~ParametricPrismModel() {
+
+	}
+
+	// à compléter
+	bool ParametricPrismModel::initModel() {
+		return true;
+	}
+
+	osg::Vec3 ParametricPrismModel::getSlotPosition(unsigned int i) {
+
+		osg::Vec3 slotPos;
+		return slotPos;
+	}
+
+	osg::Vec3 ParametricPrismModel::getSlotAxis(unsigned int i) {
+		osg::Quat quat;
+		osg::Vec3 axis;
+		return quat*axis;
+	}
+
+	osg::Vec3 ParametricPrismModel::getSlotOrientation(unsigned int i) {
+		osg::Quat quat;
+		osg::Vec3 axis;
+		return quat*axis;
+	}
 }
