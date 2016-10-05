@@ -59,6 +59,7 @@ std::map<char, std::string> initPartTypeMap(const std::map<char, std::string>
 	partTypeMap['F'] = PART_TYPE_FIXED_BRICK;
 	partTypeMap['L'] = PART_TYPE_LIGHT_SENSOR;
 	partTypeMap['B'] = PART_TYPE_PARAM_JOINT;
+	partTypeMap['P'] = PART_TYPE_PARAM_PRISM;
 
 	partTypeMap['H'] = PART_TYPE_PASSIVE_HINGE;
 #ifdef IR_SENSORS_ENABLED
@@ -84,10 +85,12 @@ std::map<std::string, unsigned int> initPartTypeArityMap() {
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT] = 4;
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = 4;
 	partTypeArityMap[PART_TYPE_FIXED_BRICK] = 3;
+	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 4; //first is un fixed prism with 5 face, must be variable in the futur
 #else
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT] = 6;
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = 6;
 	partTypeArityMap[PART_TYPE_FIXED_BRICK] = 5;
+	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 6;
 #endif
 	partTypeArityMap[PART_TYPE_LIGHT_SENSOR] = 0;
 	partTypeArityMap[PART_TYPE_PARAM_JOINT] = 1;
@@ -123,6 +126,7 @@ std::map<std::string, unsigned int> initPartTypeParamCountMap() {
 	partTypeParamCountMap[PART_TYPE_FIXED_BRICK] = 0;
 	partTypeParamCountMap[PART_TYPE_LIGHT_SENSOR] = 0;
 	partTypeParamCountMap[PART_TYPE_PARAM_JOINT] = 3;
+	partTypeParamCountMap[PART_TYPE_PARAM_PRISM] = 1;
 #ifdef ALLOW_CARDANS
 	partTypeParamCountMap[PART_TYPE_PASSIVE_CARDAN] = 0;
 #endif
@@ -164,6 +168,8 @@ std::map<std::pair<std::string, unsigned int>, std::pair<double, double> >
 	partTypeParamRangeMap[std::make_pair(PART_TYPE_PASSIVE_WHEEL, 0)] =
 			std::make_pair(0.03, 0.08); // radius in m
 #endif
+	partTypeParamRangeMap[std::make_pair(PART_TYPE_PARAM_PRISM, 0)] =
+			std::make_pair(3, 100); // number of prism face
 	return partTypeParamRangeMap;
 }
 

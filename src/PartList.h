@@ -63,6 +63,7 @@ namespace robogen {
 #define PART_TYPE_FIXED_BRICK 		"FixedBrick"
 #define PART_TYPE_LIGHT_SENSOR 		"LightSensor"
 #define PART_TYPE_PARAM_JOINT 		"ParametricJoint"
+#define PART_TYPE_PARAM_PRISM		"ParametricPrism"
 
 #define SENSOR_TYPE_IMU_SENSOR_ELEMENT	"ImuSensorElement"
 #define SENSOR_TYPE_LIGHT_SENSOR		"LightSensor"
