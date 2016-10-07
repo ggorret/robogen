@@ -37,11 +37,10 @@ namespace robogen {
 	const float ParametricPrismModel::SLOT_WIDTH = inMm(34);
 	const float ParametricPrismModel::SLOT_THICKNESS = inMm(1.5);
 
-	//Je ne sais pas ce que ça fait
 	ParametricPrismModel::ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace,
-			std::string id, int numberFace):
+			std::string id, int faceNumber):
 			Model(odeWorld, odeSpace, id),
-			numberFace_(numberFace){
+			faceNumber_(faceNumber){
 	}
 
 	ParametricPrismModel::~ParametricPrismModel() {
@@ -50,9 +49,17 @@ namespace robogen {
 
 	// à compléter
 	bool ParametricPrismModel::initModel() {
+		
 		return true;
 	}
 
+	boost::shared_ptr<SimpleBody> ParametricPrismModel::getRoot() {
+		return brickRoot_;
+	}
+
+	boost::shared_ptr<SimpleBody> ParametricPrismModel::getSlot(unsigned int i) {
+		return brickRoot_;
+	}
 	osg::Vec3 ParametricPrismModel::getSlotPosition(unsigned int i) {
 
 		osg::Vec3 slotPos;

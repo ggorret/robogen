@@ -282,6 +282,21 @@ boost::shared_ptr<Model> RobogenUtils::createModel(
 						bodyPart.evolvableparam(0).paramvalue(),
 						bodyPart.evolvableparam(1).paramvalue(),
 						bodyPart.evolvableparam(2).paramvalue()));
+
+	} else if (bodyPart.type().compare(PART_TYPE_PARAM_PRISM) == 0) {
+
+		if (bodyPart.evolvableparam_size() != 1) {
+			std::cerr
+					<< "The parametric prism does not encode 1 parameters. Exiting."
+					<< std::endl;
+			return boost::shared_ptr<Model>();
+		}
+
+		model.reset(
+				new ParametricPrismModel(odeWorld, odeSpace, id,
+						bodyPart.evolvableparam(0).paramvalue()));
+						
+
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
 	} else if (bodyPart.type().compare(PART_TYPE_ROTATOR) == 0) {
 
@@ -414,6 +429,7 @@ boost::shared_ptr<RenderModel> RobogenUtils::createRenderModel(
 				new ParametricBrickRenderModel(
 						boost::dynamic_pointer_cast<ParametricBrickModel>(
 								model)));
+
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
 	} else if (boost::dynamic_pointer_cast<PassiveWheelModel>(model)) {
 
@@ -516,6 +532,10 @@ std::string RobogenUtils::getPartType(boost::shared_ptr<Model> model) {
 	} else if (boost::dynamic_pointer_cast<ParametricBrickModel>(model)) {
 
 		return PART_TYPE_PARAM_JOINT;
+
+	} else if (boost::dynamic_pointer_cast<ParametricPrismModel>(model)) {
+
+		return PART_TYPE_PARAM_PRISM;
 
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
 	} else if (boost::dynamic_pointer_cast<PassiveWheelModel>(model)) {

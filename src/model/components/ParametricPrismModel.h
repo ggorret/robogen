@@ -35,7 +35,9 @@
 
 namespace robogen {
 /**
- * A parametric prism is modelled with N boxes (for the moment is a prism of 5 faces)
+ * A parametric prism is modelled with N boxes (for the moment is the prism face is fixed)
+ * Where N = FaceNumber 	if the number of face is odd
+ *		   = 2*FaceNumber 	if the number of face is even
  */
 	class ParametricPrismModel: public Model {
 
@@ -53,10 +55,10 @@ namespace robogen {
 		 *
 		 * @param odeWorld
 		 * @param odeSpace
-		 * @param numberFace = number of prism face (without counting the face on the top and the bottom)
+		 * @param FaceNumber = number of prism face (without counting the face on the top and the bottom)
 		 */
 		ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace, std::string id,
-				int numberFace);
+				int faceNumber);
 
 		virtual ~ParametricPrismModel();
 
@@ -64,7 +66,7 @@ namespace robogen {
 
 		virtual boost::shared_ptr<SimpleBody> getRoot();
 
-		virtual boost::shared_ptr<SimpleBody> getSlot(unsigned int i);
+		virtual boost::shared_ptr<SimpleBody> getSlot(unsigned int i); // each face = 1 slot ?
 
 		virtual osg::Vec3 getSlotPosition(unsigned int i);
 
@@ -72,14 +74,14 @@ namespace robogen {
 
 		virtual osg::Vec3 getSlotAxis(unsigned int i);
 
-		inline int getNumberFace() {
-			return numberFace_;
+		inline int getFaceNumber() {
+			return faceNumber_;
 		}
 		private:
 
-			int numberFace_;
+			int faceNumber_;
 
-			//compléter le boost une fois compris sont utilité
-			//boost::shared_ptr<SimpleBody> brickRoot_, brickTail_;
-	}
+			boost::shared_ptr<SimpleBody> brickRoot_;
+	};
 }
+#endif /* ROBOGEN_PARAMETRIC_PRISM_MODEL_H_ */
