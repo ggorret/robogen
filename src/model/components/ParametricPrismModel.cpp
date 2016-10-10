@@ -31,7 +31,10 @@
 #include "model/components/ParametricPrismModel.h"
 
 namespace robogen {
-
+/************************************************************
+*	Attention la masse du prism est complètement fausse
+*
+*************************************************************/
 	const float ParametricPrismModel::MASS_SLOT = inGrams(1);
 	const float ParametricPrismModel::MASS_CONNECTION_PER_M = inGrams(1.37) * 100.;
 	const float ParametricPrismModel::SLOT_WIDTH = inMm(34);
@@ -47,18 +50,45 @@ namespace robogen {
 
 	}
 
-	// à compléter
 	bool ParametricPrismModel::initModel() {
-		
+		boost::shared_ptr<SimpleBody> currentBox;
+		boost::shared_ptr<SimpleBody> nextBox;
+		osg::Quat boxRotation;
+		//ParametricPrism is composed of N geomtries if odd else N/2 geometries
+		float boxLenghtX;
+		float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
+		//If the Prisme is even it can be separate in "faceNumber_" isoceles triangles
+		if(faceNumber_%2 == 0){
+			boxLenghtX = sqrt((SLOT_WIDTH*SLOT_WIDTH) 
+								/(cos(PrismeFaceAngle/2.0)*cos(PrismeFaceAngle/2.0)) 
+								- SLOT_WIDTH*SLOT_WIDTH);
+			//because the prism is even that it can be construct with rectangle
+			currentBox = this->addBox(10*MASS_SLOT, osg::Vec3(0, 0, 0),
+							boxLenghtX, SLOT_WIDTH, SLOT_WIDTH, 0);
+			boxRoot_ = currentBox;
+			for(int i = 1; i<faceNumber_/2; i++)
+			{
+				nextBox = this->addBox(10*MASS_SLOT, osg::Vec3(0, 0, 0),
+							boxLenghtX, SLOT_WIDTH, SLOT_WIDTH, 0);
+				boxRotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
+				nextBox->setAttitude(boxRotation);
+				this->fixBodies(currentBox, nextBox);
+				currentBox = nextBox;
+			}
+		}
+		//if the Prisme is odd (Je crois que ça forme aussi des isocèle)
+		else{
+			;
+		}
 		return true;
 	}
 
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getRoot() {
-		return brickRoot_;
+		return boxRoot_;
 	}
 
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getSlot(unsigned int i) {
-		return brickRoot_;
+		return boxRoot_;
 	}
 	osg::Vec3 ParametricPrismModel::getSlotPosition(unsigned int i) {
 

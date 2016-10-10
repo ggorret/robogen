@@ -81,7 +81,7 @@ namespace robogen {
 
 			int faceNumber_;
 
-			boost::shared_ptr<SimpleBody> brickRoot_;
+			boost::shared_ptr<SimpleBody> boxRoot_;
 	};
 }
 #endif /* ROBOGEN_PARAMETRIC_PRISM_MODEL_H_ */
