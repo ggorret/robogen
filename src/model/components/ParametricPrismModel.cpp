@@ -35,9 +35,10 @@ namespace robogen {
 *	Attention la masse du prism est complètement fausse
 *
 *************************************************************/
-	const float ParametricPrismModel::MASS_SLOT = inGrams(1);
-	const float ParametricPrismModel::MASS_CONNECTION_PER_M = inGrams(1.37) * 100.;
-	const float ParametricPrismModel::SLOT_WIDTH = inMm(34);
+	const float ParametricPrismModel::MASS_PRISM = inGrams(60); //poids complètement arbitraire
+	const float ParametricPrismModel::MASS_CORE = MASS_PRISM + inGrams(34.3);
+	const float ParametricPrismModel::WIDTHY = inMm(41);
+	const float ParametricPrismModel::HEIGHTZ = inMm(35.5);
 	const float ParametricPrismModel::SLOT_THICKNESS = inMm(1.5);
 
 	ParametricPrismModel::ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace,
@@ -54,31 +55,61 @@ namespace robogen {
 		boost::shared_ptr<SimpleBody> currentBox;
 		boost::shared_ptr<SimpleBody> nextBox;
 		osg::Quat boxRotation;
+		osg::Quat boxRotation_total;
+		osg::Vec3 boxTranslation;
 		//ParametricPrism is composed of N geomtries if odd else N/2 geometries
 		float boxLenghtX;
 		float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
-		//If the Prisme is even it can be separate in "faceNumber_" isoceles triangles
+		//If the Prisme is regular it can be separate in "faceNumber_" isoceles triangles
 		if(faceNumber_%2 == 0){
-			boxLenghtX = sqrt((SLOT_WIDTH*SLOT_WIDTH) 
+			boxLenghtX = sqrt((WIDTHY*WIDTHY) 
 								/(cos(PrismeFaceAngle/2.0)*cos(PrismeFaceAngle/2.0)) 
-								- SLOT_WIDTH*SLOT_WIDTH);
+								- WIDTHY*WIDTHY);
 			//because the prism is even that it can be construct with rectangle
-			currentBox = this->addBox(10*MASS_SLOT, osg::Vec3(0, 0, 0),
-							boxLenghtX, SLOT_WIDTH, SLOT_WIDTH, 0);
+			currentBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
+							boxLenghtX, WIDTHY, HEIGHTZ, 0);
 			boxRoot_ = currentBox;
+
 			for(int i = 1; i<faceNumber_/2; i++)
 			{
-				nextBox = this->addBox(10*MASS_SLOT, osg::Vec3(0, 0, 0),
-							boxLenghtX, SLOT_WIDTH, SLOT_WIDTH, 0);
+				nextBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
+							boxLenghtX, WIDTHY, HEIGHTZ, i);
 				boxRotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
 				nextBox->setAttitude(boxRotation);
 				this->fixBodies(currentBox, nextBox);
 				currentBox = nextBox;
 			}
 		}
-		//if the Prisme is odd (Je crois que ça forme aussi des isocèle)
+		//if the Prisme is odd we can't use rectangle
 		else{
-			;
+			boxLenghtX = 0.5 * sqrt((WIDTHY*WIDTHY) 
+								/(cos(PrismeFaceAngle/2.0)*cos(PrismeFaceAngle/2.0)) 
+								- WIDTHY*WIDTHY);
+			// in order to avoid a little hole at the center of the prism
+			boxLenghtX = boxLenghtX + 0.1 * boxLenghtX; 
+			
+			//the prism is odd so it construct with "faceNumber_" of boxes
+			currentBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
+							boxLenghtX, WIDTHY, HEIGHTZ, 0);
+			boxRoot_ = currentBox;
+			float angle = PrismeFaceAngle;
+			boxRotation.makeRotate(angle, osg::Vec3(WIDTHY/2.0, -WIDTHY/2.0, 1));
+
+			for(int i = 1; i<faceNumber_; i++)
+			{
+				nextBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
+							boxLenghtX, WIDTHY, HEIGHTZ, i);
+				
+				boxRotation_total = boxRotation_total * boxRotation;
+				boxTranslation = currentBox->getPosition() 
+									+ boxRotation * osg::Vec3(0, WIDTHY/2.0, 0);
+				
+				nextBox->setAttitude(boxRotation);
+				nextBox->setPosition(boxTranslation);
+				
+				this->fixBodies(currentBox, nextBox);
+				currentBox = nextBox;
+			}
 		}
 		return true;
 	}
@@ -88,23 +119,88 @@ namespace robogen {
 	}
 
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getSlot(unsigned int i) {
-		return boxRoot_;
+		return boxRoot_; // With the Root we can find all the other slot. Faut que je vérifie comment ça marche
 	}
 	osg::Vec3 ParametricPrismModel::getSlotPosition(unsigned int i) {
+		if (i >= faceNumber_) {
+			std::cout << "[ParametricPrismModel] Invalid slot: " << i << std::endl;
+			assert(i < faceNumber_);
+		}
 
-		osg::Vec3 slotPos;
-		return slotPos;
+		osg::Vec3 curPos = this->getRootPosition();
+		osg::Vec3 slotAxis = this->getSlotAxis(i) *
+			(WIDTHY / 2 - SLOT_THICKNESS);
+
+		curPos = curPos + slotAxis;
+
+		return curPos;
 	}
 
+// le vecteur normal à la face demandé
 	osg::Vec3 ParametricPrismModel::getSlotAxis(unsigned int i) {
-		osg::Quat quat;
+		if (i >= faceNumber_) {
+			std::cout << "[ParametricPrismModel] Invalid slot: " << i << std::endl;
+			assert(i < faceNumber_);
+		}
+
+		osg::Quat quat = this->getRootAttitude();
 		osg::Vec3 axis;
-		return quat*axis;
+		osg::Quat rotation;
+			
+			if (i < faceNumber_){
+				axis.set(1,0,0); //normal vector of the root face.
+
+				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
+				rotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
+			}		
+		/*#ifndef ENFORCE_PLANAR
+			else if (i == TOP_FACE_SLOT) {
+
+				// Top face
+				axis.set(0, 0, 1);
+				rotation.makeRotate(0, osg::Vec3(0, 0, 1));
+
+			} else if (i == BOTTOM_FACE_SLOT) {
+
+				// Bottom face
+				axis.set(0, 0, -1);
+				rotation.makeRotate(0, osg::Vec3(0, 0, 1));
+			}
+		#endif*/
+			return quat * rotation * axis;
 	}
 
+// il revoit la diretion du vecteur de la face demandé
 	osg::Vec3 ParametricPrismModel::getSlotOrientation(unsigned int i) {
-		osg::Quat quat;
-		osg::Vec3 axis;
-		return quat*axis;
+		if (i >= faceNumber_) {
+			std::cout << "[ParametricPrismModel] Invalid slot: " << i << std::endl;
+			assert(i < faceNumber_);
+		}
+
+		osg::Quat quat = this->getRootAttitude();
+		osg::Vec3 tangent;
+		osg::Quat rotation;
+			
+			if (i < faceNumber_){
+				tangent.set(0,1,0); //normal vector of the root face.
+
+				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
+				rotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
+			}		
+		/*#ifndef ENFORCE_PLANAR
+			else if (i == TOP_FACE_SLOT) {
+
+				// Top face
+				tangent.set(0, 0, 1);
+				rotation.makeRotate(0, osg::Vec3(1, 0, 0));
+
+			} else if (i == BOTTOM_FACE_SLOT) {
+
+				// Bottom face
+				tangent.set(0, 0, -1);
+				rotation.makeRotate(0, osg::Vec3(1, 0, 0));
+			}
+		#endif*/
+			return quat * rotation * tangent;
 	}
 }

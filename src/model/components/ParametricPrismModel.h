@@ -43,12 +43,11 @@ namespace robogen {
 
 		public:
 
-		static const float MASS_SLOT;
-		static const float MASS_CONNECTION_PER_M;
-		static const float SLOT_WIDTH;
+		static const float MASS_PRISM;
+		static const float MASS_CORE;
+		static const float WIDTHY;
+		static const float HEIGHTZ;
 		static const float SLOT_THICKNESS;
-		static const float CONNECTION_PART_THICKNESS;
-		static const float CONNECTION_PART_WIDTH;
 
 		/**
 		 * Initialize a parametric brick model
