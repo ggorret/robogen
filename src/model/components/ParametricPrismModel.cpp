@@ -57,14 +57,13 @@ namespace robogen {
 		osg::Quat boxRotation;
 		osg::Quat boxRotation_total;
 		osg::Vec3 boxTranslation;
+		osg::Vec3 SlotOrientation;
 		//ParametricPrism is composed of N geomtries if odd else N/2 geometries
 		float boxLenghtX;
 		float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 		//If the Prisme is regular it can be separate in "faceNumber_" isoceles triangles
 		if(faceNumber_%2 == 0){
-			boxLenghtX = sqrt((WIDTHY*WIDTHY) 
-								/(cos(PrismeFaceAngle/2.0)*cos(PrismeFaceAngle/2.0)) 
-								- WIDTHY*WIDTHY);
+			boxLenghtX = WIDTHY/(tan(PrismeFaceAngle/2.0));
 			//because the prism is even that it can be construct with rectangle
 			currentBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
 							boxLenghtX, WIDTHY, HEIGHTZ, 0);
@@ -82,9 +81,7 @@ namespace robogen {
 		}
 		//if the Prisme is odd we can't use rectangle
 		else{
-			boxLenghtX = 0.5 * sqrt((WIDTHY*WIDTHY) 
-								/(cos(PrismeFaceAngle/2.0)*cos(PrismeFaceAngle/2.0)) 
-								- WIDTHY*WIDTHY);
+			boxLenghtX = 0.5*WIDTHY/(tan(PrismeFaceAngle/2.0));
 			// in order to avoid a little hole at the center of the prism
 			boxLenghtX = boxLenghtX + 0.1 * boxLenghtX; 
 			
@@ -93,24 +90,38 @@ namespace robogen {
 							boxLenghtX, WIDTHY, HEIGHTZ, 0);
 			boxRoot_ = currentBox;
 			float angle = PrismeFaceAngle;
-			boxRotation.makeRotate(angle, osg::Vec3(WIDTHY/2.0, -WIDTHY/2.0, 1));
+			boxRotation.makeRotate(angle, osg::Vec3(0, 0, 1));
+			boxRotation_total = boxRotation;
+			osg::Vec3 relativeTranslation = osg::Vec3(0,0,0);
 
+			/*
+			*First the boxe is rotated around the axis (0,0,1) that positioned at (boxLenghtX/2, -WIDTHY/2)
+			*Then the boxe is placed to the right place with a succession of translation following
+			*the edge of the prism
+			*/ 
 			for(int i = 1; i<faceNumber_; i++)
 			{
 				nextBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
 							boxLenghtX, WIDTHY, HEIGHTZ, i);
-				
-				boxRotation_total = boxRotation_total * boxRotation;
-				boxTranslation = currentBox->getPosition() 
-									+ boxRotation * osg::Vec3(0, WIDTHY/2.0, 0);
-				
-				nextBox->setAttitude(boxRotation);
+				SlotOrientation = getSlotOrientation(i-1);
+				//The nextBox will add its translation to all the previous one.
+				relativeTranslation = relativeTranslation
+										+ osg::Vec3(WIDTHY*SlotOrientation.x(),
+													WIDTHY*SlotOrientation.y(),
+													WIDTHY*SlotOrientation.z());
+				//relativeTranslation + vector of the fulcrum - offset of the rotation
+				boxTranslation =    relativeTranslation
+									+ osg::Vec3(boxLenghtX/2, -WIDTHY/2, 0) 
+									- boxRotation_total*osg::Vec3(boxLenghtX/2, -WIDTHY/2, 0);
+
+				nextBox->setAttitude(boxRotation_total);
 				nextBox->setPosition(boxTranslation);
-				
 				this->fixBodies(currentBox, nextBox);
 				currentBox = nextBox;
+				boxRotation_total = boxRotation_total*boxRotation;
 			}
 		}
+
 		return true;
 	}
 
@@ -136,7 +147,7 @@ namespace robogen {
 		return curPos;
 	}
 
-// le vecteur normal à la face demandé
+// return the normal vector of the face asked
 	osg::Vec3 ParametricPrismModel::getSlotAxis(unsigned int i) {
 		if (i >= faceNumber_) {
 			std::cout << "[ParametricPrismModel] Invalid slot: " << i << std::endl;
@@ -170,7 +181,7 @@ namespace robogen {
 			return quat * rotation * axis;
 	}
 
-// il revoit la diretion du vecteur de la face demandé
+// return the orientation vector of the face asked
 	osg::Vec3 ParametricPrismModel::getSlotOrientation(unsigned int i) {
 		if (i >= faceNumber_) {
 			std::cout << "[ParametricPrismModel] Invalid slot: " << i << std::endl;

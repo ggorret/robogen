@@ -429,6 +429,12 @@ boost::shared_ptr<RenderModel> RobogenUtils::createRenderModel(
 				new ParametricBrickRenderModel(
 						boost::dynamic_pointer_cast<ParametricBrickModel>(
 								model)));
+	} else if (boost::dynamic_pointer_cast<ParametricPrismModel>(model)) {
+
+		return boost::shared_ptr<ParametricPrismRenderModel>(
+				new ParametricPrismRenderModel(
+						boost::dynamic_pointer_cast<ParametricPrismModel>(
+								model)));
 
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
 	} else if (boost::dynamic_pointer_cast<PassiveWheelModel>(model)) {
