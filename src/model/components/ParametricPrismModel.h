@@ -76,10 +76,25 @@ namespace robogen {
 		inline int getFaceNumber() {
 			return faceNumber_;
 		}
+
+		inline int getTopFaceSlotId() {
+			return topFaceSlotId_;
+		}
+
+		inline int getbottomFaceSlotId() {
+			return bottomFaceSlotId_;
+		}
+
+		inline float getDistanceFaceCenter(){
+			return distanceFaceCenter_;
+		}
+
 		private:
 
 			int faceNumber_;
-
+			int topFaceSlotId_;
+			int bottomFaceSlotId_;
+			float distanceFaceCenter_;
 			boost::shared_ptr<SimpleBody> boxRoot_;
 	};
 }

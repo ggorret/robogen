@@ -45,6 +45,8 @@ namespace robogen {
 			std::string id, int faceNumber):
 			Model(odeWorld, odeSpace, id),
 			faceNumber_(faceNumber){
+				ParametricPrismModel::topFaceSlotId_ = faceNumber_;
+				ParametricPrismModel::bottomFaceSlotId_ = faceNumber_ + 1;
 	}
 
 	ParametricPrismModel::~ParametricPrismModel() {
@@ -89,8 +91,7 @@ namespace robogen {
 			currentBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
 							boxLenghtX, WIDTHY, HEIGHTZ, 0);
 			boxRoot_ = currentBox;
-			float angle = PrismeFaceAngle;
-			boxRotation.makeRotate(angle, osg::Vec3(0, 0, 1));
+			boxRotation.makeRotate(PrismeFaceAngle, osg::Vec3(0, 0, 1));
 			boxRotation_total = boxRotation;
 			osg::Vec3 relativeTranslation = osg::Vec3(0,0,0);
 
@@ -121,7 +122,7 @@ namespace robogen {
 				boxRotation_total = boxRotation_total*boxRotation;
 			}
 		}
-
+		ParametricPrismModel::distanceFaceCenter_ = boxLenghtX;
 		return true;
 	}
 
@@ -132,6 +133,8 @@ namespace robogen {
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getSlot(unsigned int i) {
 		return boxRoot_; // With the Root we can find all the other slot. Faut que je vérifie comment ça marche
 	}
+
+	//get the position of the faces
 	osg::Vec3 ParametricPrismModel::getSlotPosition(unsigned int i) {
 		if (i >= faceNumber_) {
 			std::cout << "[ParametricPrismModel] Invalid slot: " << i << std::endl;
@@ -140,7 +143,7 @@ namespace robogen {
 
 		osg::Vec3 curPos = this->getRootPosition();
 		osg::Vec3 slotAxis = this->getSlotAxis(i) *
-			(WIDTHY / 2 - SLOT_THICKNESS);
+			(distanceFaceCenter_ / 2 - SLOT_THICKNESS);
 
 		curPos = curPos + slotAxis;
 
@@ -164,20 +167,20 @@ namespace robogen {
 				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 				rotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
 			}		
-		/*#ifndef ENFORCE_PLANAR
-			else if (i == TOP_FACE_SLOT) {
+		#ifndef ENFORCE_PLANAR
+			else if (i == topFaceSlotId_) {
 
 				// Top face
 				axis.set(0, 0, 1);
 				rotation.makeRotate(0, osg::Vec3(0, 0, 1));
 
-			} else if (i == BOTTOM_FACE_SLOT) {
+			} else if (i == bottomFaceSlotId_) {
 
 				// Bottom face
 				axis.set(0, 0, -1);
 				rotation.makeRotate(0, osg::Vec3(0, 0, 1));
 			}
-		#endif*/
+		#endif
 			return quat * rotation * axis;
 	}
 
@@ -198,20 +201,20 @@ namespace robogen {
 				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 				rotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
 			}		
-		/*#ifndef ENFORCE_PLANAR
-			else if (i == TOP_FACE_SLOT) {
+		#ifndef ENFORCE_PLANAR
+			else if (i == topFaceSlotId_) {
 
 				// Top face
 				tangent.set(0, 0, 1);
 				rotation.makeRotate(0, osg::Vec3(1, 0, 0));
 
-			} else if (i == BOTTOM_FACE_SLOT) {
+			} else if (i == bottomFaceSlotId_) {
 
 				// Bottom face
 				tangent.set(0, 0, -1);
 				rotation.makeRotate(0, osg::Vec3(1, 0, 0));
 			}
-		#endif*/
+		#endif
 			return quat * rotation * tangent;
 	}
 }
