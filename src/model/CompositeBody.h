@@ -71,6 +71,8 @@ public:
 
 	std::string str(int indent=0);
 
+	dMass compositeMass_;
+
 private:
 
 	void addSubBody(boost::shared_ptr<AbstractBody> subBody,
@@ -80,7 +82,6 @@ private:
 	std::vector<boost::weak_ptr<SimpleBody> > flattenSubBodies();
 
 
-	dMass compositeMass_;
 	std::vector<boost::weak_ptr<AbstractBody> > subBodies_;
 	bool multiModel_;
 	std::set<dBodyID> bodiesToDestroy_;
