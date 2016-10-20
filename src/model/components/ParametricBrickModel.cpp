@@ -27,7 +27,7 @@
  * @(#) $Id$
  */
 #include "model/components/ParametricBrickModel.h"
-#include "model/CompositeBody.h"
+
 namespace robogen {
 
 const float ParametricBrickModel::MASS_SLOT = inGrams(1);
@@ -57,26 +57,77 @@ bool ParametricBrickModel::initModel() {
 	// ParametricBrick is composed of 5 geometries,
 	// now created directly with calls to this->add___
 
-	brickRoot_ = this->addBox(inGrams(250), osg::Vec3(0, 0, 0),
-				inMm(50), inMm(50), inMm(50), B_SLOT_A_ID);
+	brickRoot_ = this->addBox(MASS_SLOT, osg::Vec3(0, 0, 0),
+				SLOT_THICKNESS, SLOT_WIDTH, SLOT_WIDTH, B_SLOT_A_ID);
+
+	osg::Vec3 fixedBarPosition(SLOT_THICKNESS / 2. + FIXED_BAR_LENGTH/2., 0, 0);
+	boost::shared_ptr<SimpleBody> fixedBar = this->addBox(
+			MASS_CONNECTION_PER_M * FIXED_BAR_LENGTH,
+			fixedBarPosition,
+			FIXED_BAR_LENGTH, CONNECTION_PART_WIDTH, CONNECTION_PART_THICKNESS,
+			B_FIXED_BAR__ID);
+
+	this->fixBodies(brickRoot_, fixedBar);
+
+	osg::Vec3 cylinderPosition(fixedBarPosition.x() + FIXED_BAR_LENGTH/2.,
+			0, 0);
+	// mass uses length of radius, since only half cylinder outside of box
+	boost::shared_ptr<SimpleBody> cylinder = this->addCylinder(
+			MASS_CONNECTION_PER_M * CYLINDER_RADIUS,
+			cylinderPosition, 2,
+			CYLINDER_RADIUS, CONNECTION_PART_WIDTH, B_CYLINDER_ID);
+
+	this->fixBodies(fixedBar, cylinder);
+
+
+	// here we just place the box at origin since we will correctly
+	// position it after applying the rotation.
+	boost::shared_ptr<SimpleBody>  connectionPart = this->addBox(
+			MASS_CONNECTION_PER_M * connectionPartLength_,
+			osg::Vec3(0,0,0), connectionPartLength_,
+			CONNECTION_PART_WIDTH, CONNECTION_PART_THICKNESS,
+			B_CONNECTION_PART_ID);
+
+
+	// Now create the rotation
+	osg::Quat rotationA;
+	rotationA.makeRotate(osg::DegreesToRadians(angleA_), osg::Vec3(0, 1, 0));
+
+	// the piece will be positioned at the cylinder's position
+	// + the rotated offset
+	osg::Vec3 connectionPartPosition = cylinderPosition + rotationA *
+							osg::Vec3(connectionPartLength_ / 2., 0, 0);
+
+	connectionPart->setAttitude(rotationA);
+	connectionPart->setPosition(connectionPartPosition);
+
+	// Create joints to hold pieces in position
+	this->fixBodies(cylinder, connectionPart);
+
 
 	// do something similar with the slot piece
 	// first place it at origin
-	brickTail_ = this->addBox(inGrams(250), osg::Vec3(0, 0, 0),
-				inMm(50), inMm(50), inMm(50), B_SLOT_B_ID);
+	brickTail_ = this->addBox(MASS_SLOT, osg::Vec3(0,0,0),
+			SLOT_THICKNESS, SLOT_WIDTH, SLOT_WIDTH, B_SLOT_B_ID);
 
 
-	brickTail_->setPosition(osg::Vec3(inMm(10), 0, 0));
+	// Create rotation, which will actually be combined rotation of the
+	// two angles
+	osg::Quat rotationB;
+	rotationB.makeRotate(osg::DegreesToRadians(angleB_), osg::Vec3(1, 0, 0));
+
+	rotationB = rotationB * rotationA;
+
+	// the piece will be positioned at the connection part's position +
+	// the rotated offset
+	osg::Vec3 slotBPosition = connectionPartPosition + rotationB *
+				osg::Vec3(connectionPartLength_ / 2 + SLOT_THICKNESS / 2, 0, 0);
+
+	brickTail_->setAttitude(rotationB);
+	brickTail_->setPosition(slotBPosition);
 
 	// Fix slot B
-	this->fixBodies(brickRoot_, brickTail_);
-
-
-	// get composite body
-	boost::shared_ptr<CompositeBody> composite = brickRoot_->getParent();
-
-
-	std::cout << "Mass of composite body: " << composite->compositeMass_.mass * 1000 <<  std::endl;
+	this->fixBodies(connectionPart, brickTail_);
 
 	return true;
 
