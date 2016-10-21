@@ -1,0 +1,4 @@
+0 CoreComponent Core 0
+	0 ActiveHinge Hip1 1 
+		0 FixedBrick UpperLeg1 1
+

@@ -1,0 +1,6 @@
+0 CoreComponent Core 0
+	0 ParametricPrism P1 0 5 
+	1 ParametricPrism P2 0 6  
+
+
+

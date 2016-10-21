@@ -1,0 +1,2 @@
+0 CoreComponent Core 0
+	0 ParametricPrism fffe 0 6
