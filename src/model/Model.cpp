@@ -2,6 +2,7 @@
  * @(#) Model.h   1.0   Feb 8, 2013
  *
  * Andrea Maesani (andrea.maesani@epfl.ch)
+ * Basil Huber (basil.huber@epfl.ch)
  *
  * The ROBOGEN Framework
  * Copyright © 2012-2013 Andrea Maesani
@@ -33,6 +34,7 @@
 #include <sstream>
 
 #include "CompositeBody.h"
+#include "ConvexBody.h"
 
 namespace robogen {
 
@@ -230,6 +232,15 @@ boost::shared_ptr<SimpleBody> Model::addCapsule(float mass,
 
 	boost::shared_ptr<SimpleBody> body(new SimpleBody(shared_from_this(),
 					massOde, g, pos, rotateCapsule));
+	this->addBody(body, label);
+	return body;
+}
+
+boost::shared_ptr<SimpleBody> Model::addConvex(dMass mass,
+		const osg::Vec3& pos, unsigned int pointCount, dReal* points, unsigned int planeCount, dReal* planes, unsigned int* polygons,
+		int label){
+	boost::shared_ptr<ConvexBody> body(new ConvexBody(shared_from_this(), mass, pointCount, points, planeCount, planes, polygons));
+	body->setPosition(pos);
 	this->addBody(body, label);
 	return body;
 }
