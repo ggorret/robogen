@@ -29,13 +29,14 @@
  */
 
 #include "model/components/ParametricPrismModel.h"
+#include "model/ConvexBody.h"
 
 namespace robogen {
 /************************************************************
 *	Attention la masse du prism est complètement fausse
 *
 *************************************************************/
-	const float ParametricPrismModel::MASS_PRISM = inGrams(60); //poids complètement arbitraire
+	const float ParametricPrismModel::MASS_PRISM = inGrams(10); //poids complètement arbitraire
 	const float ParametricPrismModel::MASS_CORE = MASS_PRISM + inGrams(34.3);
 	const float ParametricPrismModel::WIDTHY = inMm(41);
 	const float ParametricPrismModel::HEIGHTZ = inMm(35.5);
@@ -45,14 +46,18 @@ namespace robogen {
 			std::string id, int faceNumber):
 			Model(odeWorld, odeSpace, id),
 			faceNumber_(faceNumber){
+				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
+
 				ParametricPrismModel::topFaceSlotId_ = faceNumber_;
 				ParametricPrismModel::bottomFaceSlotId_ = faceNumber_ + 1;
+				ParametricPrismModel::distanceFaceCenter_ = 0.5*WIDTHY/(tan(PrismeFaceAngle/2.0));
 	}
 
 	ParametricPrismModel::~ParametricPrismModel() {
 
 	}
 
+	
 	bool ParametricPrismModel::initModel() {
 		boost::shared_ptr<SimpleBody> currentBox;
 		boost::shared_ptr<SimpleBody> nextBox;
@@ -85,7 +90,7 @@ namespace robogen {
 		else{
 			boxLenghtX = 0.5*WIDTHY/(tan(PrismeFaceAngle/2.0));
 			// in order to avoid a little hole at the center of the prism
-			boxLenghtX = boxLenghtX + 0.1 * boxLenghtX; 
+			boxLenghtX = boxLenghtX + 0.1 * boxLenghtX;
 			
 			//the prism is odd so it construct with "faceNumber_" of boxes
 			currentBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
@@ -100,6 +105,7 @@ namespace robogen {
 			*Then the boxe is placed to the right place with a succession of translation following
 			*the edge of the prism
 			*/ 
+	
 			for(int i = 1; i<faceNumber_; i++)
 			{
 				nextBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
@@ -125,7 +131,36 @@ namespace robogen {
 		ParametricPrismModel::distanceFaceCenter_ = boxLenghtX;
 		return true;
 	}
+	
+/*
+	bool ParametricPrismModel::initModel(){
+		boost::shared_ptr<SimpleBody> prism;
+		dReal planeArray[4*(faceNumber_ + 2)]; // add 2 for the top and bottom face
 
+		//create plane array
+		for(int i = 0; i<faceNumber_; i++){
+			osg::Vec3 normal;
+			normal = getSlotAxis(i);
+			planeArray[4*i] = normal.x();
+			planeArray[4*i+1] = normal.y();
+			planeArray[4*i+2] = normal.z();
+			planeArray[4*i+3] = distanceFaceCenter_;
+		}
+		//for the top and bottom face
+			planeArray[4*faceNumber_] = 0.0f;
+			planeArray[4*faceNumber_+1] = 0.0f;
+			planeArray[4*faceNumber_+2] = 1.0f;
+			planeArray[4*faceNumber_+3] = HEIGHTZ/2.0f;
+			planeArray[4*(faceNumber_+1)] = 0.0f;
+			planeArray[4*(faceNumber_+1)+1] = 0.0f;
+			planeArray[4*(faceNumber_+1)+2] = -1.0f;
+			planeArray[4*(faceNumber_+1)+3] = HEIGHTZ/2.0f;
+		
+
+		//ConvexBody(prism, MASS_PRISM, 2*faceNumber_);
+		return true;
+	}
+*/
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getRoot() {
 		return boxRoot_;
 	}

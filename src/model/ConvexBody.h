@@ -47,7 +47,7 @@ public:
 	 * @param pointCount 	number of points of the convex polygon
 	 * @param points 		array of corners (vertices) in form: X,Y,Z
 	 * @param planeCount 	number of planes (faces) of the convex polygon
-	 * @param planes 		array of planes (forming the faces) in form:  normal X, normal Y, normal Z,Distance
+	 * @param planes 		array of planes (forming the faces) in form:  normal X, normal Y, normal Z,Distance at the origine
 	 * @param polygons 		An array of indices to the points of each polygon,
 	 * 						it should be the number of vertices
 	 * 						followed by that amount of indices to "points" in counter clockwise order
