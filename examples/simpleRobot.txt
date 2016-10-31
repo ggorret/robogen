@@ -1,16 +1,26 @@
 0 CoreComponent Core 0
-	0 ActiveHinge Hip1 1 
-		0 FixedBrick UpperLeg1 1
-			0 ActiveHinge Knee1 0 
-				0 FixedBrick LowerLeg1 0 
-	1 ActiveHinge Hip2 3 
-		0 FixedBrick UpperLeg2 1
-			0 ActiveHinge Knee2 0 
-				0 FixedBrick LowerLeg2 0 
-
-
-
-Hip1 0 Oscillator 0.8 -0.8 1
-Hip2 0 Oscillator 0.8 -0.95 1
-Knee1 0 Oscillator 0.8 0.2 1
-Knee2 0 Oscillator 0.8 -1.0 1
+	0 ParametricPrism body 0 8
+		0 ActiveHinge Hip0 1
+			0 ParametricJoint P00 0 0.02 0 0
+				0 ActiveHinge Hip000 1
+					0 ParametricJoint P0000 0 0.03 0 0
+		1 ActiveHinge Hip1 1
+			0 ParametricJoint P10 0 0.02 0 0
+				0 ActiveHinge Hip100 1
+					0 ParametricJoint P1000 0 0.03 0 0
+		2 ActiveHinge Hip2 1
+			0 ParametricJoint P20 0 0.02 0 0
+				0 ActiveHinge Hip200 1
+					0 ParametricJoint P2000 0 0.03 0 0
+		4 ActiveHinge Hip4 1
+			0 ParametricJoint P40 0 0.02 0 0
+				0 ActiveHinge Hip400 1
+					0 ParametricJoint P4000 0 0.03 0 0
+		5 ActiveHinge Hip5 1
+			0 ParametricJoint P50 0 0.02 0 0
+				0 ActiveHinge Hip500 1
+					0 ParametricJoint P5000 0 0.03 0 0
+		6 ActiveHinge Hip6 1
+			0 ParametricJoint P60 0 0.02 0 0
+				0 ActiveHinge Hip600 1
+					0 ParametricJoint P6000 0 0.03 0 0
