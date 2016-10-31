@@ -36,11 +36,13 @@ namespace robogen {
 *	Attention la masse du prism est complètement fausse
 *
 *************************************************************/
-	const float ParametricPrismModel::MASS_PRISM = inGrams(10); //poids complètement arbitraire
+	const float ParametricPrismModel::MASS_PRISM = inGrams(100); //poids complètement arbitraire
 	const float ParametricPrismModel::MASS_CORE = MASS_PRISM + inGrams(34.3);
 	const float ParametricPrismModel::WIDTHY = inMm(41);
 	const float ParametricPrismModel::HEIGHTZ = inMm(35.5);
 	const float ParametricPrismModel::SLOT_THICKNESS = inMm(1.5);
+
+	//osg::Vec3 ParametricPrismModel::getSlotAxis(unsigned int i, bool initialisationDone = true);
 
 	ParametricPrismModel::ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace,
 			std::string id, int faceNumber):
@@ -51,14 +53,16 @@ namespace robogen {
 				ParametricPrismModel::topFaceSlotId_ = faceNumber_;
 				ParametricPrismModel::bottomFaceSlotId_ = faceNumber_ + 1;
 				ParametricPrismModel::distanceFaceCenter_ = 0.5*WIDTHY/(tan(PrismeFaceAngle/2.0));
+				ParametricPrismModel::initialisationDone_ = false;
 	}
 
 	ParametricPrismModel::~ParametricPrismModel() {
 
 	}
 
-	
+	/*
 	bool ParametricPrismModel::initModel() {
+		std::cout << "initModel" << std::endl;
 		boost::shared_ptr<SimpleBody> currentBox;
 		boost::shared_ptr<SimpleBody> nextBox;
 		osg::Quat boxRotation;
@@ -106,7 +110,7 @@ namespace robogen {
 			*the edge of the prism
 			*/ 
 	
-			for(int i = 1; i<faceNumber_; i++)
+	/*		for(int i = 1; i<faceNumber_; i++)
 			{
 				nextBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
 							boxLenghtX, WIDTHY, HEIGHTZ, i);
@@ -130,43 +134,189 @@ namespace robogen {
 		}
 		ParametricPrismModel::distanceFaceCenter_ = boxLenghtX;
 		return true;
-	}
-	
-/*
+	}*/
+/**********************************************************************
+*                   Initialisation functions
+***********************************************************************/
+
 	bool ParametricPrismModel::initModel(){
-		boost::shared_ptr<SimpleBody> prism;
-		dReal planeArray[4*(faceNumber_ + 2)]; // add 2 for the top and bottom face
+		std::cout << "initModel" << std::endl;
+		std::vector <dReal> pointsVector;
+		std::vector <dReal> planeVector;
+		std::vector <unsigned int> polygonVector;
+		dMass massOde;
+
+		const unsigned int pointCount = 2*faceNumber_;
+		const unsigned int planeCount = faceNumber_ + 2;
+		
+		std::cout << "constructPlaneVector" << std::endl;
+		planeVector = constructPlaneVector();
+		std::cout << "constructPointsVector" << std::endl;
+		pointsVector = constructPointsVector();
+		std::cout << "constructPolygonVector" << std::endl;
+		polygonVector = constructPolygonVector();
+		std::cout << "computePolygon_dMass" << std::endl;
+		massOde = computePolygon_dMass();
+		//dMassSetCylinderTotal (&massOde, MASS_PRISM, 3, distanceFaceCenter_, HEIGHTZ);
+/*****************************************************************************************
+*                    			DEBUGING FUNCTION
+*****************************************************************************************/
+/*
+*  Display for a hexagone, planeVector, pointVector, polygoneVector and compare with the test
+*/
+for (int i = 0; i<planeVector.size(); i++){
+	if(i==0)
+		std::cout << "----------------------constructPlaneVector----------------------" << std::endl;
+	if(i%6==0)
+		std::cout << " " << std::endl;
+	std::cout << " " << planeVector[i] <<std::endl;
+}
+
+
+
+
+
+/*****************************************************************************************/
+		std::cout << "addConvex" << std::endl;
+		boxRoot_ = this -> addConvex(massOde,osg::Vec3(0,0,0),  
+					pointCount, &pointsVector[0], 
+					planeCount, &planeVector[0], 
+					&polygonVector[0], 0);
+		ParametricPrismModel::initialisationDone_ = true;
+		return true;
+	}
+
+/* create a mass for the ConvexPolygon
+ * Currently we use a cylinder as approx of prism
+ * TODO: calc exact moment of inertia for prism
+ */
+	dMass ParametricPrismModel::computePolygon_dMass(){
+		    dMass massOde;
+
+		    dMassSetCylinderTotal (&massOde, MASS_PRISM, 3, distanceFaceCenter_, HEIGHTZ);
+		   	// To use density instead of mass, use the following function
+			//void dMassSetCylinder (&massOde, inGrams(), int direction, dReal radius, dReal length);
+			return massOde;
+	}
+
+
+
+/*Create an Array with the normal vector of each face (X,Y,Z) with its
+ *distance to the origine D. So 4 parameters in order to describe one vector
+ *(X,Y,Z,D) that follow the equation : Xx + Yy + Zz + D = 0
+ */ 
+	std::vector <dReal> ParametricPrismModel::constructPlaneVector(){
+		std::cout << "in the function constructPlaneVector" << std::endl;
+		std::vector <dReal> planeVector;
 
 		//create plane array
 		for(int i = 0; i<faceNumber_; i++){
 			osg::Vec3 normal;
-			normal = getSlotAxis(i);
-			planeArray[4*i] = normal.x();
-			planeArray[4*i+1] = normal.y();
-			planeArray[4*i+2] = normal.z();
-			planeArray[4*i+3] = distanceFaceCenter_;
+			normal = this -> getSlotAxis(i);
+			planeVector.push_back(normal.x());
+			planeVector.push_back(normal.y());
+			planeVector.push_back(normal.z());
+			planeVector.push_back(distanceFaceCenter_);
 		}
-		//for the top and bottom face
-			planeArray[4*faceNumber_] = 0.0f;
-			planeArray[4*faceNumber_+1] = 0.0f;
-			planeArray[4*faceNumber_+2] = 1.0f;
-			planeArray[4*faceNumber_+3] = HEIGHTZ/2.0f;
-			planeArray[4*(faceNumber_+1)] = 0.0f;
-			planeArray[4*(faceNumber_+1)+1] = 0.0f;
-			planeArray[4*(faceNumber_+1)+2] = -1.0f;
-			planeArray[4*(faceNumber_+1)+3] = HEIGHTZ/2.0f;
-		
+		//add the vector describing the top face
+			planeVector.push_back(0);
+			planeVector.push_back(0);
+			planeVector.push_back(1);
+			planeVector.push_back(HEIGHTZ/2.0f);
+		//add the vector describing the top face
+			planeVector.push_back(0);
+			planeVector.push_back(0);
+			planeVector.push_back(-1);
+			planeVector.push_back(HEIGHTZ/2.0f);
 
-		//ConvexBody(prism, MASS_PRISM, 2*faceNumber_);
-		return true;
+		return planeVector;	
 	}
+
+/* An array of indices to the points of each polygon,
+ * it should be the number of vertices followed by 
+ * that amount of indices to "points" in counter clockwise order 
+ */
+	std::vector <unsigned int> ParametricPrismModel::constructPolygonVector(){
+		std::vector <unsigned int> polygonVector;
+		unsigned int BottomFirstIndex;
+		unsigned int TopFirstIndex;
+
+		//compute for the square face of the prism
+		for(int i = 0; i<faceNumber_; i++){
+			if(i!=faceNumber_-1){
+				polygonVector.push_back(4);
+				polygonVector.push_back(i);
+				polygonVector.push_back(i+1);
+				polygonVector.push_back(faceNumber_ + i);
+				polygonVector.push_back(faceNumber_ + i+1);
+			}
+		//compute the last square face
+			else
+			{
+				polygonVector.push_back(4);
+				polygonVector.push_back(i);
+				polygonVector.push_back(0);
+				polygonVector.push_back(faceNumber_ + i);
+				polygonVector.push_back(faceNumber_);
+			}
+		}
+		//compute the bottom and top face
+		BottomFirstIndex = 5*faceNumber_;
+		TopFirstIndex = BottomFirstIndex + faceNumber_ + 1;
+		polygonVector[BottomFirstIndex] = faceNumber_;
+		polygonVector[TopFirstIndex]    = faceNumber_;
+
+		for(int i = 0; i<faceNumber_; i++){
+			polygonVector[BottomFirstIndex + 1 + i] = (faceNumber_ - 1) - i;
+			polygonVector[TopFirstIndex + 1 + i]    = faceNumber_ + i;
+		}
+		return polygonVector;
+	}
+/* Create arrays for ConvexPolygon
+* An array of points X,Y,Z that define coordinates of each corner
 */
+std::vector <dReal> ParametricPrismModel::constructPointsVector(){
+	std::vector <dReal> pointsVector;
+	osg::Vec3 normal;
+	osg::Vec3 tangent;
+	osg::Vec3 bottomPointPosition;
+	osg::Vec3 topPointPosition;
+	osg::Vec3 zAxis = osg::Vec3(0, 0, 1);
+	
+	//compute the coordinate of the bottom corner
+	for(int i = 0; i < faceNumber_; i++){		
+		normal  = this -> getSlotAxis(i);
+		tangent = this -> getSlotOrientation(i);
+
+		bottomPointPosition = normal*distanceFaceCenter_ - tangent*WIDTHY/2.0f - zAxis*HEIGHTZ/2.0f;
+
+		pointsVector.push_back(bottomPointPosition.x());
+		pointsVector.push_back(bottomPointPosition.y());
+		pointsVector.push_back(bottomPointPosition.z());
+	}
+	//compute the coordinate of the top corner
+	for(int i = 0; i < faceNumber_; i++){		
+		normal  = this -> getSlotAxis(i);
+		tangent = this -> getSlotOrientation(i);
+
+		topPointPosition    = normal*distanceFaceCenter_ - tangent*WIDTHY/2.0f + zAxis*HEIGHTZ/2.0f;
+
+		pointsVector.push_back(topPointPosition.x());
+		pointsVector.push_back(topPointPosition.y());
+		pointsVector.push_back(topPointPosition.z());
+	}
+
+	return pointsVector;
+}
+/**********************************************************************
+*                       Model functions
+***********************************************************************/
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getRoot() {
 		return boxRoot_;
 	}
 
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getSlot(unsigned int i) {
-		return boxRoot_; // With the Root we can find all the other slot. Faut que je vérifie comment ça marche
+		return boxRoot_;
 	}
 
 	//get the position of the faces
@@ -195,9 +345,12 @@ namespace robogen {
 			assert(i < faceNumber_);
 		}
 
-		osg::Quat quat = this->getRootAttitude();
+		osg::Quat quat;
 		osg::Vec3 axis;
 		osg::Quat rotation;
+
+		if(initialisationDone_)
+			quat = this->getRootAttitude();
 			
 			if (i < faceNumber_){
 				axis.set(1,0,0); //normal vector of the root face.
@@ -219,7 +372,10 @@ namespace robogen {
 				rotation.makeRotate(0, osg::Vec3(0, 0, 1));
 			}
 		#endif
+
+		if(initialisationDone_)
 			return quat * rotation * axis;
+		return rotation * axis;
 	}
 
 // return the orientation vector of the face asked
@@ -229,9 +385,12 @@ namespace robogen {
 			assert(i < faceNumber_);
 		}
 
-		osg::Quat quat = this->getRootAttitude();
+		osg::Quat quat;
 		osg::Vec3 tangent;
 		osg::Quat rotation;
+
+		if(initialisationDone_)
+			quat = this->getRootAttitude();
 			
 			if (i < faceNumber_){
 				tangent.set(0,1,0); //tangent vector of the root face.
@@ -253,6 +412,9 @@ namespace robogen {
 				rotation.makeRotate(0, osg::Vec3(1, 0, 0));
 			}
 		#endif
+
+		if(initialisationDone_)
 			return quat * rotation * tangent;
+		return rotation * tangent;
 	}
 }

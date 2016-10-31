@@ -43,51 +43,52 @@ namespace robogen {
 
 		public:
 
-		static const float MASS_PRISM;
-		static const float MASS_CORE;
-		static const float WIDTHY;
-		static const float HEIGHTZ;
-		static const float SLOT_THICKNESS;
+			static const float MASS_PRISM;
+			static const float MASS_CORE;
+			static const float WIDTHY;
+			static const float HEIGHTZ;
+			static const float SLOT_THICKNESS;
 
-		/**
-		 * Initialize a parametric brick model
-		 *
-		 * @param odeWorld
-		 * @param odeSpace
-		 * @param FaceNumber = number of prism face (without counting the face on the top and the bottom)
-		 */
-		ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace, std::string id,
-				int faceNumber);
+			/**
+			 * Initialize a parametric brick model
+			 *
+			 * @param odeWorld
+			 * @param odeSpace
+			 * @param FaceNumber = number of prism face (without counting the face on the top and the bottom)
+			 */
+			ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace, std::string id,
+					int faceNumber);
 
-		virtual ~ParametricPrismModel();
+			virtual ~ParametricPrismModel();
 
-		virtual bool initModel();
+			virtual bool initModel();
 
-		virtual boost::shared_ptr<SimpleBody> getRoot();
+			virtual boost::shared_ptr<SimpleBody> getRoot();
 
-		virtual boost::shared_ptr<SimpleBody> getSlot(unsigned int i); // each face = 1 slot ?
+			virtual boost::shared_ptr<SimpleBody> getSlot(unsigned int i); // each face = 1 slot ?
 
-		virtual osg::Vec3 getSlotPosition(unsigned int i);
+			virtual osg::Vec3 getSlotPosition(unsigned int i);
 
-		virtual osg::Vec3 getSlotOrientation(unsigned int i);
+			virtual osg::Vec3 getSlotOrientation(unsigned int i);
 
-		virtual osg::Vec3 getSlotAxis(unsigned int i);
+			//virtual osg::Vec3 getSlotAxis(unsigned int i);
+			virtual osg::Vec3 getSlotAxis(unsigned int i);
 
-		inline int getFaceNumber() {
-			return faceNumber_;
-		}
+			inline int getFaceNumber() {
+				return faceNumber_;
+			}
 
-		inline int getTopFaceSlotId() {
-			return topFaceSlotId_;
-		}
+			inline int getTopFaceSlotId() {
+				return topFaceSlotId_;
+			}
 
-		inline int getbottomFaceSlotId() {
-			return bottomFaceSlotId_;
-		}
+			inline int getbottomFaceSlotId() {
+				return bottomFaceSlotId_;
+			}
 
-		inline float getDistanceFaceCenter(){
-			return distanceFaceCenter_;
-		}
+			inline float getDistanceFaceCenter(){
+				return distanceFaceCenter_;
+			}
 
 		private:
 
@@ -96,6 +97,12 @@ namespace robogen {
 			int bottomFaceSlotId_;
 			float distanceFaceCenter_;
 			boost::shared_ptr<SimpleBody> boxRoot_;
+			bool initialisationDone_; //I can't put a default value on the function declared in Model.h
+
+			std::vector <dReal> constructPlaneVector();
+			std::vector <unsigned int> constructPolygonVector();
+			std::vector <dReal> constructPointsVector();
+			dMass computePolygon_dMass();
 	};
 }
 #endif /* ROBOGEN_PARAMETRIC_PRISM_MODEL_H_ */
