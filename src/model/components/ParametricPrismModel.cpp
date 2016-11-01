@@ -60,81 +60,6 @@ namespace robogen {
 
 	}
 
-	/*
-	bool ParametricPrismModel::initModel() {
-		std::cout << "initModel" << std::endl;
-		boost::shared_ptr<SimpleBody> currentBox;
-		boost::shared_ptr<SimpleBody> nextBox;
-		osg::Quat boxRotation;
-		osg::Quat boxRotation_total;
-		osg::Vec3 boxTranslation;
-		osg::Vec3 SlotOrientation;
-		//ParametricPrism is composed of N geomtries if odd else N/2 geometries
-		float boxLenghtX;
-		float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
-		//If the Prisme is regular it can be separate in "faceNumber_" isoceles triangles
-		if(faceNumber_%2 == 0){
-			boxLenghtX = WIDTHY/(tan(PrismeFaceAngle/2.0));
-			//because the prism is even that it can be construct with rectangle
-			currentBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
-							boxLenghtX, WIDTHY, HEIGHTZ, 0);
-			boxRoot_ = currentBox;
-
-			for(int i = 1; i<faceNumber_/2; i++)
-			{
-				nextBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
-							boxLenghtX, WIDTHY, HEIGHTZ, i);
-				boxRotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
-				nextBox->setAttitude(boxRotation);
-				this->fixBodies(currentBox, nextBox);
-				currentBox = nextBox;
-			}
-		}
-		//if the Prisme is odd we can't use rectangle
-		else{
-			boxLenghtX = 0.5*WIDTHY/(tan(PrismeFaceAngle/2.0));
-			// in order to avoid a little hole at the center of the prism
-			boxLenghtX = boxLenghtX + 0.1 * boxLenghtX;
-			
-			//the prism is odd so it construct with "faceNumber_" of boxes
-			currentBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
-							boxLenghtX, WIDTHY, HEIGHTZ, 0);
-			boxRoot_ = currentBox;
-			boxRotation.makeRotate(PrismeFaceAngle, osg::Vec3(0, 0, 1));
-			boxRotation_total = boxRotation;
-			osg::Vec3 relativeTranslation = osg::Vec3(0,0,0);
-
-			/*
-			*First the boxe is rotated around the axis (0,0,1) that positioned at (boxLenghtX/2, -WIDTHY/2)
-			*Then the boxe is placed to the right place with a succession of translation following
-			*the edge of the prism
-			*/ 
-	
-	/*		for(int i = 1; i<faceNumber_; i++)
-			{
-				nextBox = this->addBox(MASS_PRISM, osg::Vec3(0, 0, 0),
-							boxLenghtX, WIDTHY, HEIGHTZ, i);
-				SlotOrientation = getSlotOrientation(i-1);
-				//The nextBox will add its translation to all the previous one.
-				relativeTranslation = relativeTranslation
-										+ osg::Vec3(WIDTHY*SlotOrientation.x(),
-													WIDTHY*SlotOrientation.y(),
-													WIDTHY*SlotOrientation.z());
-				//relativeTranslation + vector of the fulcrum - offset of the rotation
-				boxTranslation =    relativeTranslation
-									+ osg::Vec3(boxLenghtX/2, -WIDTHY/2, 0) 
-									- boxRotation_total*osg::Vec3(boxLenghtX/2, -WIDTHY/2, 0);
-
-				nextBox->setAttitude(boxRotation_total);
-				nextBox->setPosition(boxTranslation);
-				this->fixBodies(currentBox, nextBox);
-				currentBox = nextBox;
-				boxRotation_total = boxRotation_total*boxRotation;
-			}
-		}
-		ParametricPrismModel::distanceFaceCenter_ = boxLenghtX;
-		return true;
-	}*/
 /**********************************************************************
 *                   Initialisation functions
 ***********************************************************************/
@@ -149,35 +74,11 @@ namespace robogen {
 		const unsigned int pointCount = 2*faceNumber_;
 		const unsigned int planeCount = faceNumber_ + 2;
 		
-		std::cout << "constructPlaneVector" << std::endl;
 		planeVector = constructPlaneVector();
-		std::cout << "constructPointsVector" << std::endl;
 		pointsVector = constructPointsVector();
-		std::cout << "constructPolygonVector" << std::endl;
 		polygonVector = constructPolygonVector();
-		std::cout << "computePolygon_dMass" << std::endl;
 		massOde = computePolygon_dMass();
-		//dMassSetCylinderTotal (&massOde, MASS_PRISM, 3, distanceFaceCenter_, HEIGHTZ);
-/*****************************************************************************************
-*                    			DEBUGING FUNCTION
-*****************************************************************************************/
-/*
-*  Display for a hexagone, planeVector, pointVector, polygoneVector and compare with the test
-*/
-for (int i = 0; i<planeVector.size(); i++){
-	if(i==0)
-		std::cout << "----------------------constructPlaneVector----------------------" << std::endl;
-	if(i%6==0)
-		std::cout << " " << std::endl;
-	std::cout << " " << planeVector[i] <<std::endl;
-}
 
-
-
-
-
-/*****************************************************************************************/
-		std::cout << "addConvex" << std::endl;
 		boxRoot_ = this -> addConvex(massOde,osg::Vec3(0,0,0),  
 					pointCount, &pointsVector[0], 
 					planeCount, &planeVector[0], 
@@ -198,8 +99,6 @@ for (int i = 0; i<planeVector.size(); i++){
 			//void dMassSetCylinder (&massOde, inGrams(), int direction, dReal radius, dReal length);
 			return massOde;
 	}
-
-
 
 /*Create an Array with the normal vector of each face (X,Y,Z) with its
  *distance to the origine D. So 4 parameters in order to describe one vector
@@ -238,8 +137,6 @@ for (int i = 0; i<planeVector.size(); i++){
  */
 	std::vector <unsigned int> ParametricPrismModel::constructPolygonVector(){
 		std::vector <unsigned int> polygonVector;
-		unsigned int BottomFirstIndex;
-		unsigned int TopFirstIndex;
 
 		//compute for the square face of the prism
 		for(int i = 0; i<faceNumber_; i++){
@@ -247,8 +144,8 @@ for (int i = 0; i<planeVector.size(); i++){
 				polygonVector.push_back(4);
 				polygonVector.push_back(i);
 				polygonVector.push_back(i+1);
-				polygonVector.push_back(faceNumber_ + i);
 				polygonVector.push_back(faceNumber_ + i+1);
+				polygonVector.push_back(faceNumber_ + i);
 			}
 		//compute the last square face
 			else
@@ -256,19 +153,19 @@ for (int i = 0; i<planeVector.size(); i++){
 				polygonVector.push_back(4);
 				polygonVector.push_back(i);
 				polygonVector.push_back(0);
-				polygonVector.push_back(faceNumber_ + i);
 				polygonVector.push_back(faceNumber_);
+				polygonVector.push_back(faceNumber_ + i);
 			}
 		}
-		//compute the bottom and top face
-		BottomFirstIndex = 5*faceNumber_;
-		TopFirstIndex = BottomFirstIndex + faceNumber_ + 1;
-		polygonVector[BottomFirstIndex] = faceNumber_;
-		polygonVector[TopFirstIndex]    = faceNumber_;
-
+		//compute the bottom face
+		polygonVector.push_back(faceNumber_);
 		for(int i = 0; i<faceNumber_; i++){
-			polygonVector[BottomFirstIndex + 1 + i] = (faceNumber_ - 1) - i;
-			polygonVector[TopFirstIndex + 1 + i]    = faceNumber_ + i;
+			polygonVector.push_back((faceNumber_ - 1) - i);
+		}
+		//compute top face
+		polygonVector.push_back(faceNumber_);
+		for(int i = 0; i<faceNumber_; i++){
+			polygonVector.push_back(faceNumber_ + i);
 		}
 		return polygonVector;
 	}
@@ -282,6 +179,10 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 	osg::Vec3 bottomPointPosition;
 	osg::Vec3 topPointPosition;
 	osg::Vec3 zAxis = osg::Vec3(0, 0, 1);
+
+	osg::Vec3 test;
+	osg::Vec3 test1;
+	osg::Vec3 test2;
 	
 	//compute the coordinate of the bottom corner
 	for(int i = 0; i < faceNumber_; i++){		
@@ -330,7 +231,7 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 
 		osg::Vec3 curPos = this->getRootPosition();
 		osg::Vec3 slotAxis = this->getSlotAxis(i) *
-			(distanceFaceCenter_ / 2 - SLOT_THICKNESS);
+			(distanceFaceCenter_ - SLOT_THICKNESS);
 
 		//boxRotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
 		curPos = curPos + slotAxis;
