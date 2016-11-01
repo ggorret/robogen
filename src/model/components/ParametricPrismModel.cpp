@@ -50,10 +50,10 @@ namespace robogen {
 			faceNumber_(faceNumber){
 				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 
-				ParametricPrismModel::topFaceSlotId_ = faceNumber_;
-				ParametricPrismModel::bottomFaceSlotId_ = faceNumber_ + 1;
 				ParametricPrismModel::distanceFaceCenter_ = 0.5*WIDTHY/(tan(PrismeFaceAngle/2.0));
 				ParametricPrismModel::initialisationDone_ = false;
+				ParametricPrismModel::topFaceSlotId_ = faceNumber_;
+				ParametricPrismModel::bottomFaceSlotId_ = faceNumber_ + 1;
 	}
 
 	ParametricPrismModel::~ParametricPrismModel() {
@@ -180,9 +180,6 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 	osg::Vec3 topPointPosition;
 	osg::Vec3 zAxis = osg::Vec3(0, 0, 1);
 
-	osg::Vec3 test;
-	osg::Vec3 test1;
-	osg::Vec3 test2;
 	
 	//compute the coordinate of the bottom corner
 	for(int i = 0; i < faceNumber_; i++){		
@@ -226,14 +223,11 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 			std::cout << "[ParametricPrismModel] Invalid slot: " << i << std::endl;
 			assert(i < faceNumber_);
 		}
-		//osg::Quat boxRotation;
-		//float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 
 		osg::Vec3 curPos = this->getRootPosition();
 		osg::Vec3 slotAxis = this->getSlotAxis(i) *
 			(distanceFaceCenter_ - SLOT_THICKNESS);
 
-		//boxRotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
 		curPos = curPos + slotAxis;
 
 		return curPos;
@@ -254,7 +248,7 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 			quat = this->getRootAttitude();
 			
 			if (i < faceNumber_){
-				axis.set(1,0,0); //normal vector of the root face.
+				axis.set(1,0,0); //normal vector of the first face.
 
 				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 				rotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
@@ -294,7 +288,7 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 			quat = this->getRootAttitude();
 			
 			if (i < faceNumber_){
-				tangent.set(0,1,0); //tangent vector of the root face.
+				tangent.set(0,1,0); //tangent vector of the first face.
 
 				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 				rotation.makeRotate(i*PrismeFaceAngle, osg::Vec3(0, 0, 1));
