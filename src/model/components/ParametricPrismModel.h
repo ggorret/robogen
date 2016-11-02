@@ -35,9 +35,7 @@
 
 namespace robogen {
 /**
- * A parametric prism is modelled with N boxes (for the moment is the prism face is fixed)
- * Where N = FaceNumber 	if the number of face is odd
- *		   = 2*FaceNumber 	if the number of face is even
+ * A parametric prism is modelled with ConvexBody
  */
 	class ParametricPrismModel: public Model {
 
@@ -50,7 +48,7 @@ namespace robogen {
 			static const float SLOT_THICKNESS;
 
 			/**
-			 * Initialize a parametric brick model
+			 * Initialize a parametric Prism model
 			 *
 			 * @param odeWorld
 			 * @param odeSpace
@@ -65,13 +63,12 @@ namespace robogen {
 
 			virtual boost::shared_ptr<SimpleBody> getRoot();
 
-			virtual boost::shared_ptr<SimpleBody> getSlot(unsigned int i); // each face = 1 slot ?
+			virtual boost::shared_ptr<SimpleBody> getSlot(unsigned int i);
 
 			virtual osg::Vec3 getSlotPosition(unsigned int i);
 
 			virtual osg::Vec3 getSlotOrientation(unsigned int i);
 
-			//virtual osg::Vec3 getSlotAxis(unsigned int i);
 			virtual osg::Vec3 getSlotAxis(unsigned int i);
 
 			inline int getFaceNumber() {
@@ -96,7 +93,7 @@ namespace robogen {
 			int topFaceSlotId_;
 			int bottomFaceSlotId_;
 			float distanceFaceCenter_;
-			boost::shared_ptr<SimpleBody> boxRoot_;
+			boost::shared_ptr<SimpleBody> Root_;
 			bool initialisationDone_; //I can't put a default value on the function declared in Model.h
 
 			std::vector <dReal> constructPlaneVector();

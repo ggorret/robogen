@@ -33,16 +33,14 @@
 
 namespace robogen {
 /************************************************************
-*	Attention la masse du prism est complètement fausse
+*	WARNING: the constance MASS_PRISM is wrong
 *
 *************************************************************/
-	const float ParametricPrismModel::MASS_PRISM = inGrams(100); //poids complètement arbitraire
+	const float ParametricPrismModel::MASS_PRISM = inGrams(100);
 	const float ParametricPrismModel::MASS_CORE = MASS_PRISM + inGrams(34.3);
 	const float ParametricPrismModel::WIDTHY = inMm(41);
 	const float ParametricPrismModel::HEIGHTZ = inMm(35.5);
 	const float ParametricPrismModel::SLOT_THICKNESS = inMm(1.5);
-
-	//osg::Vec3 ParametricPrismModel::getSlotAxis(unsigned int i, bool initialisationDone = true);
 
 	ParametricPrismModel::ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace,
 			std::string id, int faceNumber):
@@ -79,7 +77,7 @@ namespace robogen {
 		polygonVector = constructPolygonVector();
 		massOde = computePolygon_dMass();
 
-		boxRoot_ = this -> addConvex(massOde,osg::Vec3(0,0,0),  
+		Root_ = this -> addConvex(massOde,osg::Vec3(0,0,0),  
 					pointCount, &pointsVector[0], 
 					planeCount, &planeVector[0], 
 					&polygonVector[0], 0);
@@ -89,7 +87,7 @@ namespace robogen {
 
 /* create a mass for the ConvexPolygon
  * Currently we use a cylinder as approx of prism
- * TODO: calc exact moment of inertia for prism
+ * TODO: calc exact moment of inertia for prism and his mass
  */
 	dMass ParametricPrismModel::computePolygon_dMass(){
 		    dMass massOde;
@@ -179,7 +177,6 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 	osg::Vec3 bottomPointPosition;
 	osg::Vec3 topPointPosition;
 	osg::Vec3 zAxis = osg::Vec3(0, 0, 1);
-
 	
 	//compute the coordinate of the bottom corner
 	for(int i = 0; i < faceNumber_; i++){		
@@ -210,11 +207,11 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 *                       Model functions
 ***********************************************************************/
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getRoot() {
-		return boxRoot_;
+		return Root_;
 	}
 
 	boost::shared_ptr<SimpleBody> ParametricPrismModel::getSlot(unsigned int i) {
-		return boxRoot_;
+		return Root_;
 	}
 
 	//get the position of the faces
