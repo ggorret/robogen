@@ -135,10 +135,15 @@ boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 				<< id << "'" << std::endl;
 		return boost::shared_ptr<PartRepresentation>();
 	}
+	
+	/*
+	*TODO: 	the case if the parType with variable connection is a core
+	* 		in this case arty = params.at(0)
+	*/
 
 	// In order to save the compability with Mutator::mutateParams
 	if(VARIABLE_CONNECT_MAP.at(partType)){
-		arity = params.at(0);
+		arity = params.at(0)-1; // remove the Parent Connection
 		params.erase(params.begin());
 	}
 	else

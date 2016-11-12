@@ -98,7 +98,7 @@ std::map<std::string, unsigned int> initPartTypeArityMap() {
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT] = 6;
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = 6;
 	partTypeArityMap[PART_TYPE_FIXED_BRICK] = 5;
-	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 0;
+	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 4;
 #endif
 	partTypeArityMap[PART_TYPE_LIGHT_SENSOR] = 0;
 	partTypeArityMap[PART_TYPE_PARAM_JOINT] = 1;

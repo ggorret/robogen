@@ -957,10 +957,82 @@ bool RobotRepresentation::removePart(const std::string& partId,
 	return true;
 }
 
-bool RobotRepresentation::replaceNode(const std::string& partToreplaceId, 
+bool RobotRepresentation::replacePart(const std::string& partToReplaceId, 
 			boost::shared_ptr<PartRepresentation> newPart, 
+			std::vector<unsigned int> newChildPosition,
 			bool printErrors){
 
+// Set new ID for the newPart node
+	std::string newUniqueId = this->generateUniqueIdFromSomeId();
+	newPart->setId(newUniqueId);
+
+// check if the children of the old part can be put on the new one
+	boost::shared_ptr<PartRepresentation> partToReplace =
+				idToPart_[partToReplaceId].lock();
+	if(newPart -> getArity() < partToReplace -> getChildrenCount()){
+		if (printErrors) {
+			std::cerr << "Not enough free slots on the newPart "
+						<< "Need " << partToReplace -> getChildrenCount()
+						<< ", but only have " << newPart -> getArity()
+						<< std::endl;
+		}
+		return false;
+	}
+// check if the number of child and the size of newChildPosition is coherent
+	if(partToReplace -> getChildrenCount() != newChildPosition.size()){
+		if (printErrors) {
+			std::cerr << "The partToReplace has " << partToReplace -> getChildrenCount()
+						<< "and the size of newChildPosition is " << newChildPosition.size()
+						<< ". If partToReplace has X children, the vector must provide X positions !"
+						<< std::endl;
+		}
+		return false;
+	}
+//check if partToReplace is the root or not
+	bool isTheRoot = false;
+	if (partToReplace->getId().compare(bodyTree_->getId()) == 0) {
+		isTheRoot = true;
+	}
+//check the coherence in the vector newChildPosition
+	for(int i = 0; i<newChildPosition.size(); i++){
+		if(newChildPosition[i] == 0 && !isTheRoot){
+			if (printErrors) {
+				std::cerr << "The position 0 is taken by the parent !" << std::endl;
+			}
+			return false;
+		}
+		if(newChildPosition[i] > newPart -> getArity()){
+			if (printErrors) {
+				std::cerr << "The child position is " << newChildPosition[i]
+						<< "and must be smaller than " << newPart -> getArity() + 1
+						<< std::endl;
+			}
+			return false;
+		}	
+	}
+
+// get the parent of the partToReplace and set it on newPart
+	PartRepresentation* parent;
+	if(!isTheRoot){
+		parent = partToReplace -> getParent();
+		newPart -> setParent(parent);
+	}
+
+// get child of partToReplaceId and set it on newPart
+	if(partToReplace -> getChildrenCount() != 0){
+		int positionCounter = 0;
+		for(int i = 0; i < partToReplace -> getArity(); i++){
+			if(partToReplace -> getChild(i) != NULL){
+				newPart -> setChild(newChildPosition[i], partToReplace -> getChild(i));
+				positionCounter++;
+			}
+		}
+	}
+// remove partToReplace
+	// remove neurons and all their connections
+	neuralNetwork_->removeNeurons(partToReplaceId);
+	// remove the partToReplace
+	idToPart_.erase(partToReplaceId);
 	return true;
 }
 

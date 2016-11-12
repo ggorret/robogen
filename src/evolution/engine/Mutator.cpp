@@ -673,7 +673,7 @@ bool Mutator::mutateParams(boost::shared_ptr<RobotRepresentation>& robot) {
 
 	std::vector<double> &params = partToMutate->second.lock()->getParams();
 	
-	// Select a random parameter/or orientation to mutate
+	// Select a random parameter or orientation to mutate
 	boost::random::uniform_int_distribution<> distMutation(0, params.size());
 	unsigned int paramToMutate = distMutation(rng_);
 
@@ -698,6 +698,7 @@ bool Mutator::mutateParams(boost::shared_ptr<RobotRepresentation>& robot) {
 }
 
 bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
+
 //Select node for mutation
 	const RobotRepresentation::IdPartMap& idPartMap = robot->getBody();
 	boost::random::uniform_int_distribution<> dist(0, idPartMap.size() - 1);
@@ -710,13 +711,23 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 	if(!VARIABLE_CONNECT_MAP.at(partType))
 		return false;
 
+//find the last slot ID
+	unsigned int partToMutateLastSlotId = 0;
+	if(partToMutate->second.lock()->getParent() == NULL)
+		partToMutateLastSlotId = partToMutate->second.lock()-> getArity()-1;
+	else
+		partToMutateLastSlotId = partToMutate->second.lock()-> getArity();
+
 //mutate the number of connection with discret Gaussian
-	int connectionNumber = partToMutate->second.lock()->getArity();
+	int connectionNumber = partToMutateLastSlotId + 1;
 	float connectionModifier = (normalDistribution_(rng_) * conf_->connectionParamSigma);
 	if(connectionModifier > 0)
-		connectionNumber += ceil(connectionModifier);
+		connectionModifier = ceil(connectionModifier);
 	else if(connectionModifier < 0)
-		connectionNumber += floor(connectionModifier);
+		connectionModifier = floor(connectionModifier);
+	else
+		return false;
+	connectionNumber += connectionModifier;
 
 //check if the new connectionNumber is in the range
 	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
@@ -727,10 +738,9 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 // Create the mutate part
 	unsigned int Orientation = partToMutate->second.lock()->getOrientation();
 	std::vector<double> parameters = partToMutate->second.lock()-> getParams();
-	unsigned int arity = partToMutate->second.lock()-> getArity();
 
 	//because when a bodyPart is create the number of connection is at the begining of the vector Params
-	parameters.insert(parameters.begin(), arity);
+	parameters.insert(parameters.begin(), connectionNumber);
 
 	//find the character associated to the partType
 	char type;
@@ -744,9 +754,64 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 	boost::shared_ptr<PartRepresentation> newPart = PartRepresentation::create(
 			type, "", Orientation, parameters);
 
+// set the new position of the oldPart children to the mutate one
+	std::vector<unsigned int> childPosition;
+	
+	//choose a free slot to remove
+	if(connectionModifier<0){
+		std::vector<unsigned int> freeSlots = partToMutate->second.lock()->getFreeSlots();
+		if (freeSlots.size() > 0) {
+
+			boost::random::uniform_int_distribution<> freeSlotsDist(0, freeSlots.size() - 1);
+			unsigned int selectedSlotId = freeSlots[freeSlotsDist(rng_)];
+			//set position of children
+			for(int i = 0; i <= partToMutateLastSlotId; i++){
+				if(partToMutate->second.lock()->getChild(i)!= NULL){
+					if(i<selectedSlotId)
+						childPosition.push_back(i);
+					else
+						childPosition.push_back(i+connectionModifier);
+				}
+			}
+		}
+		else
+			return false;
+	}
+	//choose between wich slots, the new slot will be insert
+	else{
+		//choose the first slot
+		boost::random::uniform_int_distribution<>slotDist1(0, partToMutateLastSlotId);
+		unsigned int slotId1 = slotDist1(rng_);
+		//choose the seconde slot
+		std::vector<int> followingSlotPossibility = {-1, 1};
+		boost::random::uniform_int_distribution<>slotDist2(0,followingSlotPossibility.size()-1);
+		int slotId2 = slotId1 + followingSlotPossibility[slotDist2(rng_)];
+
+		if(slotId2<0)
+			slotId2 = partToMutateLastSlotId;
+
+		//set position of children
+		unsigned int slotMin = std::min(slotId1, (unsigned int)slotId2);
+
+		for(int i = 0; i <= partToMutateLastSlotId; i++){
+			if(partToMutate->second.lock()->getChild(i)!= NULL){
+				if(i>slotMin)
+					childPosition.push_back(i);
+				else
+					childPosition.push_back(i+connectionModifier);
+			}
+		}	
+	}
+
+	/*
+	* TODO: Copy the neural network of the old bodyPart to the mutated one
+	*/
+	//set motor and sensor identifier
+	//neuralNetwork_->cloneNeurons(oldId, part->getId(), neuronReMapping);
+
 //replace the node by the mutate one
 	bool success =
-		robot -> replaceNode(partToMutate->first, newPart, PRINT_ERRORS);
+		robot -> replacePart(partToMutate->first, newPart, childPosition, PRINT_ERRORS);
 
 	return success;
 }

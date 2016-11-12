@@ -206,8 +206,9 @@ public:
 	*@param newPart the part that will replace the old one.
 	*@return true if the operation completed successfully, false otherwise
 	*/
-	bool replaceNode(const std::string& partToreplaceId, 
+	bool replacePart(const std::string& partToReplaceId, 
 			boost::shared_ptr<PartRepresentation> newPart, 
+			std::vector<unsigned int> newChildPosition,
 			bool printErrors=true);
 
 	/**
