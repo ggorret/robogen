@@ -41,7 +41,7 @@ namespace robogen {
 const std::string
 EvolverConfiguration::BodyMutationOperatorsProbabilityCodes[] = {
 			"pSubtreeRemove", "pSubtreeDuplicate", "pSubtreeSwap",
-			"pNodeInsert", "pNodeRemove", "pParameterModify"/*,
+			"pNodeInsert", "pNodeRemove", "pParameterModify", "pConnectionModify"/*,
 			"pOrientationChange", "pSensorSwap", "pLinkChange", "pActivePassive"
 			*/
 	};
@@ -121,6 +121,7 @@ bool EvolverConfiguration::init(std::string configFileName) {
 	pBrainCrossover = 0.0;
 
     bodyParamSigma = 0.1;
+    connectionParamSigma = 0.1;
 
 	// DON'T AUTO-INDENT THE FOLLOWING ON ECLIPSE:
 	desc.add_options()
@@ -235,6 +236,9 @@ bool EvolverConfiguration::init(std::string configFileName) {
 		("bodyParamSigma", boost::program_options::value<double>(
 				&bodyParamSigma),
 				"Sigma of body param mutation (all params in [0,1])")
+		("connectionParamSigma", boost::program_options::value<double>(
+				&connectionParamSigma),
+				"Sigma of connection param mutation (all params in [0,1])")
 		;
 	// generate body operator probability options from contraptions in header
 	for (unsigned i=0; i<NUM_BODY_OPERATORS; ++i){

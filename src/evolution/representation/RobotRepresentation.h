@@ -200,6 +200,17 @@ public:
 	bool removePart(const std::string& partId, bool printErrors=true);
 
 	/**
+	*Change a part into another one
+	*
+	*@param partToreplaceId id of the part to replace
+	*@param newPart the part that will replace the old one.
+	*@return true if the operation completed successfully, false otherwise
+	*/
+	bool replaceNode(const std::string& partToreplaceId, 
+			boost::shared_ptr<PartRepresentation> newPart, 
+			bool printErrors=true);
+
+	/**
 	 * @return the id of the root body part
 	 */
 	const std::string& getBodyRootId();

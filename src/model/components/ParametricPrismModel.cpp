@@ -1,8 +1,6 @@
 /*
  * @(#) ParametricPrismModel.cpp   1.0   Oct 5, 2016
  *
- * Andrea Maesani (andrea.maesani@epfl.ch)
- * Joshua Auerbach (joshua.auerbach@epfl.ch)
  * Gaël Gorret (gael.gorret@epfl.ch)
  *
  * The ROBOGEN Framework
@@ -63,7 +61,6 @@ namespace robogen {
 ***********************************************************************/
 
 	bool ParametricPrismModel::initModel(){
-		std::cout << "initModel" << std::endl;
 		std::vector <dReal> pointsVector;
 		std::vector <dReal> planeVector;
 		std::vector <unsigned int> polygonVector;
@@ -82,6 +79,7 @@ namespace robogen {
 					planeCount, &planeVector[0], 
 					&polygonVector[0], 0);
 		ParametricPrismModel::initialisationDone_ = true;
+
 		return true;
 	}
 
@@ -103,7 +101,6 @@ namespace robogen {
  *(X,Y,Z,D) that follow the equation : Xx + Yy + Zz + D = 0
  */ 
 	std::vector <dReal> ParametricPrismModel::constructPlaneVector(){
-		std::cout << "in the function constructPlaneVector" << std::endl;
 		std::vector <dReal> planeVector;
 
 		//create plane array

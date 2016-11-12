@@ -957,6 +957,13 @@ bool RobotRepresentation::removePart(const std::string& partId,
 	return true;
 }
 
+bool RobotRepresentation::replaceNode(const std::string& partToreplaceId, 
+			boost::shared_ptr<PartRepresentation> newPart, 
+			bool printErrors){
+
+	return true;
+}
+
 bool RobotRepresentation::check() {
 
 	// 1. Check that every body part in the body tree is in the idBodyPart map

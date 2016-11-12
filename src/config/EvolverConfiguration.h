@@ -79,7 +79,7 @@ typedef struct EvolverConfiguration {
 	 */
 	enum BodyMutationOperators{
 		SUBTREE_REMOVAL, SUBTREE_DUPLICATION, SUBTREE_SWAPPING,
-		NODE_INSERTION, NODE_REMOVAL, PARAMETER_MODIFICATION,
+		NODE_INSERTION, NODE_REMOVAL, PARAMETER_MODIFICATION, CONNECTION_MODIFICATION,
 		/*ORIENTATION_CHANGE, SENSOR_SWAP, LINK_CHANGE, ACTIVE_PASSIVE,*/
 		NUM_BODY_OPERATORS
 	};
@@ -262,6 +262,12 @@ typedef struct EvolverConfiguration {
 	 * Std dev of body param mutations
 	 */
 	double bodyParamSigma;
+
+	/**
+	 * Std dev of parametricPrism param mutations (faceNumber)
+	 */
+
+	double connectionParamSigma;
 
 	/**
 	 * Evolutionary algorithm

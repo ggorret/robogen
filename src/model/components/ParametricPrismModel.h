@@ -1,8 +1,6 @@
 /*
  * @(#) ParametricPrismModel.cpp   1.0   Oct 5, 2016
  *
- * Andrea Maesani (andrea.maesani@epfl.ch)
- * Joshua Auerbach (joshua.auerbach@epfl.ch)
  * Gaël Gorret (gael.gorret@epfl.ch)
  *
  * The ROBOGEN Framework

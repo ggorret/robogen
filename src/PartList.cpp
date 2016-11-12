@@ -71,6 +71,14 @@ std::map<char, std::string> initPartTypeMap(const std::map<char, std::string>
 	return partTypeMap;
 }
 
+/*
+* A map that contain the number of connection (child) that a
+* bodyPart can have.
+* If connection is not constant then return 0 in order to avoid
+* a potential error.
+* TODO: check if a bodyPart is not in the ArityMap will give
+* 		an error.
+*/
 std::map<std::string, unsigned int> initPartTypeArityMap() {
 	std::map<std::string, unsigned int> partTypeArityMap;
 #ifdef ALLOW_CARDANS
@@ -85,12 +93,12 @@ std::map<std::string, unsigned int> initPartTypeArityMap() {
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT] = 4;
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = 4;
 	partTypeArityMap[PART_TYPE_FIXED_BRICK] = 3;
-	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 7; //first is un fixed prism with 6 face, must be variable in the futur
+	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 0;
 #else
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT] = 6;
 	partTypeArityMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = 6;
 	partTypeArityMap[PART_TYPE_FIXED_BRICK] = 5;
-	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 6;
+	partTypeArityMap[PART_TYPE_PARAM_PRISM]	= 0;
 #endif
 	partTypeArityMap[PART_TYPE_LIGHT_SENSOR] = 0;
 	partTypeArityMap[PART_TYPE_PARAM_JOINT] = 1;
@@ -110,6 +118,56 @@ std::map<std::string, unsigned int> initPartTypeArityMap() {
 #endif
 	return partTypeArityMap;
 }
+/*
+* A map that contain if the body part can evolve is number of connection
+* so its arity map is evolvable.
+* Warning: The parameter of the connection is always the FIRST param
+*/
+std::map<std::string, bool> initVariableConnectMap() {
+	std::map<std::string, bool> variableConnectMap;
+#ifdef ALLOW_CARDANS
+	variableConnectMap[PART_TYPE_ACTIVE_CARDAN] = false;
+#endif
+	variableConnectMap[PART_TYPE_ACTIVE_HINGE] = false;
+#ifdef ALLOW_ROTATIONAL_COMPONENTS
+	variableConnectMap[PART_TYPE_ACTIVE_WHEEL] = false;
+	variableConnectMap[PART_TYPE_ACTIVE_WHEG] = false;
+#endif
+#ifdef ENFORCE_PLANAR
+	variableConnectMap[PART_TYPE_CORE_COMPONENT] = false;
+	variableConnectMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = false;
+	variableConnectMap[PART_TYPE_FIXED_BRICK] = false;
+	variableConnectMap[PART_TYPE_PARAM_PRISM]	= true;
+
+	variableConnectMap[PART_TYPE_CORE_COMPONENT] = false;
+	variableConnectMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = false;
+	variableConnectMap[PART_TYPE_FIXED_BRICK] = false;
+	variableConnectMap[PART_TYPE_PARAM_PRISM]	= false;
+#endif
+	variableConnectMap[PART_TYPE_LIGHT_SENSOR] = false;
+	variableConnectMap[PART_TYPE_PARAM_JOINT] = false;
+#ifdef ALLOW_CARDANS
+	variableConnectMap[PART_TYPE_PASSIVE_CARDAN] = false;
+#endif
+	variableConnectMap[PART_TYPE_PASSIVE_HINGE] = false;
+#ifdef ALLOW_ROTATIONAL_COMPONENTS
+	variableConnectMap[PART_TYPE_PASSIVE_WHEEL] = false;
+	variableConnectMap[PART_TYPE_ROTATOR] = false;
+#endif
+#ifdef IR_SENSORS_ENABLED
+	variableConnectMap[PART_TYPE_IR_SENSOR] = false;
+#endif
+#ifdef TOUCH_SENSORS_ENABLED
+	variableConnectMap[PART_TYPE_TOUCH_SENSOR] = false;
+#endif
+	return variableConnectMap;
+}
+
+/*
+* A map that contain the number of bodyPart parameters.
+* If the number of connection is variable this one become
+* a parameter !
+*/
 
 std::map<std::string, unsigned int> initPartTypeParamCountMap() {
 	std::map<std::string, unsigned int> partTypeParamCountMap;
@@ -144,6 +202,7 @@ std::map<std::string, unsigned int> initPartTypeParamCountMap() {
 	return partTypeParamCountMap;
 }
 
+//when adding a new part with variable connection, the first range must be that of the connection
 std::map<std::pair<std::string, unsigned int>, std::pair<double, double> >
 												initPartTypeParamRangeMap() {
 	std::map<std::pair<std::string, unsigned int>,
@@ -169,7 +228,7 @@ std::map<std::pair<std::string, unsigned int>, std::pair<double, double> >
 			std::make_pair(0.03, 0.08); // radius in m
 #endif
 	partTypeParamRangeMap[std::make_pair(PART_TYPE_PARAM_PRISM, 0)] =
-			std::make_pair(3, 100); // number of prism face
+			std::make_pair(3, 8); // number of prism face
 	return partTypeParamRangeMap;
 }
 
@@ -288,11 +347,13 @@ const std::map<std::string, char> INVERSE_PART_TYPE_MAP =
 		inverseMap(PART_TYPE_MAP);
 const std::map<std::string, unsigned int> PART_TYPE_ARITY_MAP =
 		initPartTypeArityMap();
+const std::map<std::string, bool> VARIABLE_CONNECT_MAP =
+		initVariableConnectMap();
 const std::map<std::string, unsigned int> PART_TYPE_PARAM_COUNT_MAP =
 		initPartTypeParamCountMap();
 const std::map<std::pair<std::string, unsigned int>,
-		std::pair<double, double> >
-		PART_TYPE_PARAM_RANGE_MAP = initPartTypeParamRangeMap();
+		std::pair<double, double> > PART_TYPE_PARAM_RANGE_MAP = 
+		initPartTypeParamRangeMap();
 const std::map<std::string, std::vector<std::string> > PART_TYPE_MOTORS_MAP =
 		initPartTypeMotorsMap();
 const std::map<std::string, std::vector<std::string> > PART_TYPE_SENSORS_MAP =

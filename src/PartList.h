@@ -92,6 +92,7 @@ extern const std::map<char, std::string> LEGACY_PART_TYPE_MAP;
 extern const std::map<char, std::string> PART_TYPE_MAP;
 extern const std::map<std::string, char> INVERSE_PART_TYPE_MAP;
 extern const std::map<std::string, unsigned int> PART_TYPE_ARITY_MAP;
+extern const std::map<std::string, bool> VARIABLE_CONNECT_MAP;
 extern const std::map<std::string, unsigned int> PART_TYPE_PARAM_COUNT_MAP;
 extern const std::map<std::pair<std::string, unsigned int>,
 	std::pair<double, double> > PART_TYPE_PARAM_RANGE_MAP;

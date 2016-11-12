@@ -120,6 +120,7 @@ bool PartRepresentation::setChild(unsigned int n,
 
 boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 		std::string id, unsigned int orientation, std::vector<double> params) {
+	int arity;
 
 	if (PART_TYPE_MAP.count(type) == 0) {
 		std::cout << "Unknown part type '" << type << "'" << std::endl;
@@ -135,9 +136,19 @@ boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 		return boost::shared_ptr<PartRepresentation>();
 	}
 
+	// In order to save the compability with Mutator::mutateParams
+	if(VARIABLE_CONNECT_MAP.at(partType)){
+		arity = params.at(0);
+		params.erase(params.begin());
+	}
+	else
+	{
+		arity = PART_TYPE_ARITY_MAP.at(partType);
+	}
+
 	return boost::shared_ptr<PartRepresentation>(
 			new PartRepresentation(id, orientation,
-					PART_TYPE_ARITY_MAP.at(partType), partType, params,
+					arity, partType, params,
 					PART_TYPE_MOTORS_MAP.at(partType),
 					PART_TYPE_SENSORS_MAP.at(partType)));
 

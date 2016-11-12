@@ -82,6 +82,10 @@ Mutator::Mutator(boost::shared_ptr<EvolverConfiguration> conf,
 				boost::random::bernoulli_distribution<double>(
 						conf->bodyOperatorProbability
 						[EvolverConfiguration::PARAMETER_MODIFICATION]);
+		connectionMutateDist_ =
+				boost::random::bernoulli_distribution<double>(
+						conf->bodyOperatorProbability
+						[EvolverConfiguration::CONNECTION_MODIFICATION]);
 	}
 }
 
@@ -380,13 +384,14 @@ bool Mutator::mutateBody(boost::shared_ptr<RobotRepresentation>& robot) {
 	std::cout << "mutating body" << std::endl;
 #endif
 	bool mutated = false;
-	MutOpPair mutOpPairs[] = { std::make_pair(&Mutator::removeSubtree,
-			subtreeRemovalDist_), std::make_pair(&Mutator::duplicateSubtree,
-			subtreeDuplicationDist_), std::make_pair(&Mutator::swapSubtrees,
-			subtreeSwapDist_), std::make_pair(&Mutator::insertNode,
-			nodeInsertDist_), std::make_pair(&Mutator::removeNode,
-			nodeRemovalDist_), std::make_pair(&Mutator::mutateParams,
-			paramMutateDist_) };
+	MutOpPair mutOpPairs[] = { 
+			std::make_pair(&Mutator::removeSubtree, subtreeRemovalDist_), 
+			std::make_pair(&Mutator::mutateConnection, connectionMutateDist_),
+			std::make_pair(&Mutator::duplicateSubtree, subtreeDuplicationDist_),
+			std::make_pair(&Mutator::swapSubtrees, subtreeSwapDist_),
+			std::make_pair(&Mutator::insertNode, nodeInsertDist_), 
+			std::make_pair(&Mutator::removeNode, nodeRemovalDist_), 
+			std::make_pair(&Mutator::mutateParams, paramMutateDist_) };
 
 	int numOperators = sizeof(mutOpPairs) / sizeof(MutOpPair);
 	for (int i = 0; i < numOperators; ++i) {
@@ -667,6 +672,7 @@ bool Mutator::mutateParams(boost::shared_ptr<RobotRepresentation>& robot) {
 	std::advance(partToMutate, dist(rng_));
 
 	std::vector<double> &params = partToMutate->second.lock()->getParams();
+	
 	// Select a random parameter/or orientation to mutate
 	boost::random::uniform_int_distribution<> distMutation(0, params.size());
 	unsigned int paramToMutate = distMutation(rng_);
@@ -677,15 +683,72 @@ bool Mutator::mutateParams(boost::shared_ptr<RobotRepresentation>& robot) {
 		unsigned int newOrientation = orientationDist(rng_);
 		partToMutate->second.lock()->setOrientation(newOrientation);
 		return (oldOrientation != newOrientation);
-	} else {
+	} 
+	else {
 		double oldParamValue = params[paramToMutate];
+		
 		params[paramToMutate] += (normalDistribution_(rng_) *
 									conf_->bodyParamSigma);
+
 		params[paramToMutate] = clip(params[paramToMutate], 0., 1.);
 		return ( fabs(oldParamValue - params[paramToMutate]) >
 					RobogenUtils::EPSILON_2 );
 	}
 
+}
+
+bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
+//Select node for mutation
+	const RobotRepresentation::IdPartMap& idPartMap = robot->getBody();
+	boost::random::uniform_int_distribution<> dist(0, idPartMap.size() - 1);
+
+	RobotRepresentation::IdPartMap::const_iterator partToMutate = idPartMap.begin();
+	std::advance(partToMutate, dist(rng_));
+	
+//check if the bodyPartType as the right to mutate its connection
+	const std::string partType = partToMutate->second.lock()->getType();
+	if(!VARIABLE_CONNECT_MAP.at(partType))
+		return false;
+
+//mutate the number of connection with discret Gaussian
+	int connectionNumber = partToMutate->second.lock()->getArity();
+	float connectionModifier = (normalDistribution_(rng_) * conf_->connectionParamSigma);
+	if(connectionModifier > 0)
+		connectionNumber += ceil(connectionModifier);
+	else if(connectionModifier < 0)
+		connectionNumber += floor(connectionModifier);
+
+//check if the new connectionNumber is in the range
+	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
+					std::make_pair(PART_TYPE_PARAM_PRISM, 0));
+	if(connectionNumber<range.first || connectionNumber>range.second)
+		return false;
+
+// Create the mutate part
+	unsigned int Orientation = partToMutate->second.lock()->getOrientation();
+	std::vector<double> parameters = partToMutate->second.lock()-> getParams();
+	unsigned int arity = partToMutate->second.lock()-> getArity();
+
+	//because when a bodyPart is create the number of connection is at the begining of the vector Params
+	parameters.insert(parameters.begin(), arity);
+
+	//find the character associated to the partType
+	char type;
+	for(auto& it: PART_TYPE_MAP)
+		if(it.second == partType)
+			type = it.first;
+		else{
+			std::cout << "Invalid PartType at Mutator::mutateConnection" << std::endl;
+			return false;
+		}
+	boost::shared_ptr<PartRepresentation> newPart = PartRepresentation::create(
+			type, "", Orientation, parameters);
+
+//replace the node by the mutate one
+	bool success =
+		robot -> replaceNode(partToMutate->first, newPart, PRINT_ERRORS);
+
+	return success;
 }
 
 }
