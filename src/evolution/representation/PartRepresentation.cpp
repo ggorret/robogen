@@ -135,14 +135,14 @@ boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 				<< id << "'" << std::endl;
 		return boost::shared_ptr<PartRepresentation>();
 	}
-	
+
 	/*
 	*TODO: 	the case if the parType with variable connection is a core
 	* 		in this case arty = params.at(0)
 	*/
 
 	// In order to save the compability with Mutator::mutateParams
-	if(VARIABLE_CONNECT_MAP.at(partType)){
+	if(VARIABLE_ARITY_MAP.at(partType)){
 		arity = params.at(0)-1; // remove the Parent Connection
 		params.erase(params.begin());
 	}
@@ -174,8 +174,20 @@ void PartRepresentation::addSubtreeToBodyMessage(
 	// required bool root = 3;
 	serialization->set_root(amIRoot);
 
+	// BASIL
+	/*
+	* TODO: if isTheCore put param->set_paramvalue(arity_)
+	*/
+	unsigned i0param = 0;
+	if(VARIABLE_ARITY_MAP.at(getType())){
+		robogenMessage::EvolvableParameter *param =
+					serialization->add_evolvableparam();
+		param->set_paramvalue(arity_ + 1);
+		i0param = 1;
+	}
 	// repeated EvolvableParameter evolvableParam = 4;
-	for (unsigned int i = 0; i < params_.size(); ++i) {
+	// The first parameter can be a non-normalized Arity map
+	for (unsigned int i = i0param; i < params_.size(); ++i) {
 		robogenMessage::EvolvableParameter *param =
 				serialization->add_evolvableparam();
 

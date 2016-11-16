@@ -204,6 +204,8 @@ public:
 	*
 	*@param partToreplaceId id of the part to replace
 	*@param newPart the part that will replace the old one.
+	*@param A vector that have the position of children on the New part
+	*		vector = (positionFirstChild, positionSecondChild, ..., positionLastChild)
 	*@return true if the operation completed successfully, false otherwise
 	*/
 	bool replacePart(const std::string& partToReplaceId, 

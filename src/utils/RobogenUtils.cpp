@@ -79,6 +79,7 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 	// before anything else, specify parent's orientation so can figure out
 	// orientation relative to root of part -- needed to enforce "planarity"
 	// e.g. all bricks should be in default orientation
+	// The all Parametric models should be in default orientation
 #ifdef ENFORCE_PLANAR
 	if (boost::dynamic_pointer_cast<CoreComponentModel>(b)) {
 		// enforce root being in orientation 0

@@ -82,10 +82,10 @@ Mutator::Mutator(boost::shared_ptr<EvolverConfiguration> conf,
 				boost::random::bernoulli_distribution<double>(
 						conf->bodyOperatorProbability
 						[EvolverConfiguration::PARAMETER_MODIFICATION]);
-		connectionMutateDist_ =
+		arityMutateDist_ =
 				boost::random::bernoulli_distribution<double>(
 						conf->bodyOperatorProbability
-						[EvolverConfiguration::CONNECTION_MODIFICATION]);
+						[EvolverConfiguration::ARITY_MODIFICATION]);
 	}
 }
 
@@ -383,10 +383,15 @@ bool Mutator::mutateBody(boost::shared_ptr<RobotRepresentation>& robot) {
 #ifdef DEBUG_MUTATE
 	std::cout << "mutating body" << std::endl;
 #endif
+	//Define in wich order the mutation's operation is done
+	/*
+	* mutateArity is do right after remove Subtree because it can remove
+	* only an empty face.
+	*/
 	bool mutated = false;
 	MutOpPair mutOpPairs[] = { 
 			std::make_pair(&Mutator::removeSubtree, subtreeRemovalDist_), 
-			std::make_pair(&Mutator::mutateConnection, connectionMutateDist_),
+			std::make_pair(&Mutator::mutateArity, arityMutateDist_),
 			std::make_pair(&Mutator::duplicateSubtree, subtreeDuplicationDist_),
 			std::make_pair(&Mutator::swapSubtrees, subtreeSwapDist_),
 			std::make_pair(&Mutator::insertNode, nodeInsertDist_), 
@@ -619,7 +624,16 @@ bool Mutator::insertNode(boost::shared_ptr<RobotRepresentation>& robot) {
 	unsigned int nParams = PART_TYPE_PARAM_COUNT_MAP.at(PART_TYPE_MAP.at(type));
 	std::vector<double> parameters;
 	boost::random::uniform_01<double> paramDist;
-	for (unsigned int i = 0; i < nParams; ++i) {
+	unsigned int i0Param = 0;
+	if(VARIABLE_ARITY_MAP.at(PART_TYPE_MAP.at(type))){
+		std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
+					std::make_pair(PART_TYPE_PARAM_PRISM, 0));
+		boost::random::uniform_int_distribution<> arityDist((int)range.first,(int)range.second);
+
+		parameters.push_back(arityDist(rng_));
+		i0Param = 1;
+	}
+	for (unsigned int i = i0Param; i < nParams; ++i) {
 		parameters.push_back(paramDist(rng_));
 	}
 
@@ -628,7 +642,6 @@ bool Mutator::insertNode(boost::shared_ptr<RobotRepresentation>& robot) {
 			type, "", curOrientation, parameters);
 
 	unsigned int newPartSlot = 0;
-
 	if (newPart->getArity() > 0) {
 		// Generate a random slot in the new node, if it has arity > 0
 		boost::random::uniform_int_distribution<> distNewPartSlot(0,
@@ -697,7 +710,8 @@ bool Mutator::mutateParams(boost::shared_ptr<RobotRepresentation>& robot) {
 
 }
 
-bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
+
+bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 
 //Select node for mutation
 	const RobotRepresentation::IdPartMap& idPartMap = robot->getBody();
@@ -708,7 +722,7 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 	
 //check if the bodyPartType as the right to mutate its connection
 	const std::string partType = partToMutate->second.lock()->getType();
-	if(!VARIABLE_CONNECT_MAP.at(partType))
+	if(!VARIABLE_ARITY_MAP.at(partType))
 		return false;
 
 //find the last slot ID
@@ -719,20 +733,20 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 		partToMutateLastSlotId = partToMutate->second.lock()-> getArity();
 
 //mutate the number of connection with discret Gaussian
-	int connectionNumber = partToMutateLastSlotId + 1;
-	float connectionModifier = (normalDistribution_(rng_) * conf_->connectionParamSigma);
-	if(connectionModifier > 0)
-		connectionModifier = ceil(connectionModifier);
-	else if(connectionModifier < 0)
-		connectionModifier = floor(connectionModifier);
+	int newArity = partToMutateLastSlotId + 1;
+	float arityModifier = (normalDistribution_(rng_) * conf_->arityParamSigma);
+	if(arityModifier > 0)
+		arityModifier = ceil(arityModifier);
+	else if(arityModifier < 0)
+		arityModifier = floor(arityModifier);
 	else
 		return false;
-	connectionNumber += connectionModifier;
+	newArity += arityModifier;
 
-//check if the new connectionNumber is in the range
+//check if the newArity is in the range
 	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
 					std::make_pair(PART_TYPE_PARAM_PRISM, 0));
-	if(connectionNumber<range.first || connectionNumber>range.second)
+	if(newArity<range.first || newArity>range.second)
 		return false;
 
 // Create the mutate part
@@ -740,7 +754,7 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 	std::vector<double> parameters = partToMutate->second.lock()-> getParams();
 
 	//because when a bodyPart is create the number of connection is at the begining of the vector Params
-	parameters.insert(parameters.begin(), connectionNumber);
+	parameters.insert(parameters.begin(), newArity);
 
 	//find the character associated to the partType
 	char type;
@@ -748,7 +762,7 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 		if(it.second == partType)
 			type = it.first;
 		else{
-			std::cout << "Invalid PartType at Mutator::mutateConnection" << std::endl;
+			std::cout << "Invalid PartType at Mutator::mutateArity" << std::endl;
 			return false;
 		}
 	boost::shared_ptr<PartRepresentation> newPart = PartRepresentation::create(
@@ -758,7 +772,7 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 	std::vector<unsigned int> childPosition;
 	
 	//choose a free slot to remove
-	if(connectionModifier<0){
+	if(arityModifier<0){
 		std::vector<unsigned int> freeSlots = partToMutate->second.lock()->getFreeSlots();
 		if (freeSlots.size() > 0) {
 
@@ -770,7 +784,7 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 					if(i<selectedSlotId)
 						childPosition.push_back(i);
 					else
-						childPosition.push_back(i+connectionModifier);
+						childPosition.push_back(i+arityModifier);
 				}
 			}
 		}
@@ -779,35 +793,24 @@ bool Mutator::mutateConnection(boost::shared_ptr<RobotRepresentation>& robot){
 	}
 	//choose between wich slots, the new slot will be insert
 	else{
-		//choose the first slot
+		//choose both slots
 		boost::random::uniform_int_distribution<>slotDist1(0, partToMutateLastSlotId);
 		unsigned int slotId1 = slotDist1(rng_);
-		//choose the seconde slot
-		std::vector<int> followingSlotPossibility = {-1, 1};
-		boost::random::uniform_int_distribution<>slotDist2(0,followingSlotPossibility.size()-1);
-		int slotId2 = slotId1 + followingSlotPossibility[slotDist2(rng_)];
-
+		int slotId2 = slotId1 - 1;
 		if(slotId2<0)
 			slotId2 = partToMutateLastSlotId;
 
 		//set position of children
 		unsigned int slotMin = std::min(slotId1, (unsigned int)slotId2);
-
 		for(int i = 0; i <= partToMutateLastSlotId; i++){
 			if(partToMutate->second.lock()->getChild(i)!= NULL){
 				if(i>slotMin)
 					childPosition.push_back(i);
 				else
-					childPosition.push_back(i+connectionModifier);
+					childPosition.push_back(i+arityModifier);
 			}
 		}	
 	}
-
-	/*
-	* TODO: Copy the neural network of the old bodyPart to the mutated one
-	*/
-	//set motor and sensor identifier
-	//neuralNetwork_->cloneNeurons(oldId, part->getId(), neuronReMapping);
 
 //replace the node by the mutate one
 	bool success =

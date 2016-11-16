@@ -154,7 +154,18 @@ bool robotTextFileReadPartLine(std::ifstream &file, unsigned int &indent,
 			exitRobogen(EXIT_FAILURE);
 			//return false;
 		}
-		for (unsigned int i = 0; i < rawParams.size(); i++) {
+
+		// BASIL
+		// Do not normalize arity param
+		unsigned int iParam0;
+		if(VARIABLE_ARITY_MAP.at(PART_TYPE_MAP.at(type))){
+			iParam0 = 1;
+		}
+		else {
+			iParam0 = 0;
+		}
+
+		for (unsigned int i = iParam0; i < rawParams.size(); i++){
 			std::pair<double, double> ranges = PART_TYPE_PARAM_RANGE_MAP.at(
 					std::make_pair(PART_TYPE_MAP.at(type), i));
 			double rawParamValue = rawParams[i];
@@ -172,9 +183,9 @@ bool robotTextFileReadPartLine(std::ifstream &file, unsigned int &indent,
 					(rawParamValue - ranges.first)
 							/ (ranges.second - ranges.first));
 		}
-
 		return true;
-	} else {
+	} 
+	else {
 		// additional info if poor formatting, i.e. line not empty
 
 		if (!isLineEmpty(line)) {
@@ -1029,9 +1040,6 @@ bool RobotRepresentation::replacePart(const std::string& partToReplaceId,
 		}
 	}
 // remove partToReplace
-	// remove neurons and all their connections
-	neuralNetwork_->removeNeurons(partToReplaceId);
-	// remove the partToReplace
 	idToPart_.erase(partToReplaceId);
 	return true;
 }
