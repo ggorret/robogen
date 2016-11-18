@@ -620,11 +620,12 @@ bool Mutator::insertNode(boost::shared_ptr<RobotRepresentation>& robot) {
 	boost::random::uniform_int_distribution<> orientationDist(0, 3);
 	unsigned int curOrientation = orientationDist(rng_);
 
-	// Randomly generate parameters
+// Randomly generate parameters
 	unsigned int nParams = PART_TYPE_PARAM_COUNT_MAP.at(PART_TYPE_MAP.at(type));
 	std::vector<double> parameters;
 	boost::random::uniform_01<double> paramDist;
 	unsigned int i0Param = 0;
+	//generate a random arity for the parts with variable arity
 	if(VARIABLE_ARITY_MAP.at(PART_TYPE_MAP.at(type))){
 		std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
 					std::make_pair(PART_TYPE_MAP.at(type), 0));
@@ -633,6 +634,7 @@ bool Mutator::insertNode(boost::shared_ptr<RobotRepresentation>& robot) {
 		parameters.push_back(arityDist(rng_));
 		i0Param = 1;
 	}
+	//generate random parameters that can be mutate with mutator::mutateParam
 	for (unsigned int i = i0Param; i < nParams; ++i) {
 		parameters.push_back(paramDist(rng_));
 	}

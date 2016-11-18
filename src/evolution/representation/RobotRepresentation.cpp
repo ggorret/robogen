@@ -967,7 +967,9 @@ bool RobotRepresentation::removePart(const std::string& partId,
 	}
 	return true;
 }
-
+/*
+*TODO: check if this function work correctly
+*/
 bool RobotRepresentation::replacePart(const std::string& partToReplaceId, 
 			boost::shared_ptr<PartRepresentation> newPart, 
 			std::vector<unsigned int> newChildPosition,
@@ -1042,7 +1044,7 @@ bool RobotRepresentation::setChildPosition(const std::string& partId,
 		return false;
 
 //Set the newChildPosition
-	//save all the child in a vector
+	//save all the children in a vector
 	std::vector<boost::shared_ptr<PartRepresentation>> child;
 	for(int i = 0; i < part->getArity(); i++){
 		if(part->getChild(i)!=NULL)
