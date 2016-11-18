@@ -142,6 +142,7 @@ boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 	*/
 
 	// In order to save the compability with Mutator::mutateParams
+	// we will keep only the params that this function needs in the vector Params
 	if(VARIABLE_ARITY_MAP.at(partType)){
 		arity = params.at(0)-1; // remove the Parent Connection
 		params.erase(params.begin());

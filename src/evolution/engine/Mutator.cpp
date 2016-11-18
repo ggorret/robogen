@@ -627,7 +627,7 @@ bool Mutator::insertNode(boost::shared_ptr<RobotRepresentation>& robot) {
 	unsigned int i0Param = 0;
 	if(VARIABLE_ARITY_MAP.at(PART_TYPE_MAP.at(type))){
 		std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
-					std::make_pair(PART_TYPE_PARAM_PRISM, 0));
+					std::make_pair(PART_TYPE_MAP.at(type), 0));
 		boost::random::uniform_int_distribution<> arityDist((int)range.first,(int)range.second);
 
 		parameters.push_back(arityDist(rng_));
@@ -644,6 +644,7 @@ bool Mutator::insertNode(boost::shared_ptr<RobotRepresentation>& robot) {
 	unsigned int newPartSlot = 0;
 	if (newPart->getArity() > 0) {
 		// Generate a random slot in the new node, if it has arity > 0
+		// newPartSlot will have the number of the child like the .txt
 		boost::random::uniform_int_distribution<> distNewPartSlot(0,
 				newPart->getArity() - 1);
 		newPartSlot = distNewPartSlot(rng_);
@@ -710,7 +711,10 @@ bool Mutator::mutateParams(boost::shared_ptr<RobotRepresentation>& robot) {
 
 }
 
-
+/********************************************************************************
+* mutateArity using the function replacePart
+********************************************************************************/
+/*
 bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 
 //Select node for mutation
@@ -815,6 +819,104 @@ bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 //replace the node by the mutate one
 	bool success =
 		robot -> replacePart(partToMutate->first, newPart, childPosition, PRINT_ERRORS);
+
+	return success;
+}
+*/
+
+/********************************************************************************
+* mutateArity using the function setChildPosition
+********************************************************************************/
+
+bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
+
+//Select node for mutation
+	const RobotRepresentation::IdPartMap& idPartMap = robot->getBody();
+	boost::random::uniform_int_distribution<> dist(0, idPartMap.size() - 1);
+
+	RobotRepresentation::IdPartMap::const_iterator partToMutate = idPartMap.begin();
+	std::advance(partToMutate, dist(rng_));
+	
+//check if the bodyPartType as the right to mutate its connection
+	const std::string partType = partToMutate->second.lock()->getType();
+	if(!VARIABLE_ARITY_MAP.at(partType))
+		return false;
+
+//find the last slot ID
+	unsigned int partToMutateLastSlotId = 0;
+	if(partToMutate->second.lock()->getParent() == NULL)
+		partToMutateLastSlotId = partToMutate->second.lock()-> getArity()-1;
+	else
+		partToMutateLastSlotId = partToMutate->second.lock()-> getArity();
+
+//mutate the number of connection with discret Gaussian
+	int newArity = partToMutateLastSlotId + 1;
+	float arityModifier = (normalDistribution_(rng_) * conf_->arityParamSigma);
+	if(arityModifier > 0)
+		arityModifier = ceil(arityModifier);
+	else if(arityModifier < 0)
+		arityModifier = floor(arityModifier);
+	else
+		return false;
+	newArity += arityModifier;
+
+//check if the newArity is in the range
+	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
+					std::make_pair(PART_TYPE_PARAM_PRISM, 0));
+	if(newArity<range.first || newArity>range.second)
+		return false;
+
+// Mutate the part
+	// set the new position of children
+	std::vector<unsigned int> childPosition;
+	
+		//choose a free slot to remove
+	if(arityModifier<0){
+		std::vector<unsigned int> freeSlots = partToMutate->second.lock()->getFreeSlots();
+		if (freeSlots.size() > 0) {
+
+			boost::random::uniform_int_distribution<> freeSlotsDist(0, freeSlots.size() - 1);
+			unsigned int selectedSlotId = freeSlots[freeSlotsDist(rng_)];
+			//set position of children
+			for(int i = 0; i <= partToMutateLastSlotId; i++){
+				if(partToMutate->second.lock()->getChild(i)!= NULL){
+					if(i<selectedSlotId)
+						childPosition.push_back(i);
+					else
+						childPosition.push_back(i+arityModifier);
+				}
+			}
+		}
+		else
+			return false;
+	}
+		//choose between wich slots, the new slot will be insert
+	else{
+			//choose both slots
+		boost::random::uniform_int_distribution<>slotDist1(0, partToMutateLastSlotId);
+		unsigned int slotId1 = slotDist1(rng_);
+		int slotId2 = slotId1 - 1;
+		if(slotId2<0)
+			slotId2 = partToMutateLastSlotId;
+
+			//set position of children
+		unsigned int slotMin = std::min(slotId1, (unsigned int)slotId2);
+		for(int i = 0; i <= partToMutateLastSlotId; i++){
+			if(partToMutate->second.lock()->getChild(i)!= NULL){
+				if(i>slotMin)
+					childPosition.push_back(i);
+				else
+					childPosition.push_back(i+arityModifier);
+			}
+		}	
+	}
+	//Put the new arity at the begining of the vector Params 
+	//because in PartRepresentation::create, the arity will be remove of the vector Params
+std::vector<double> parameters = partToMutate->second.lock()-> getParams();
+parameters.insert(parameters.begin(), newArity);
+	//replace the node by the mutate one
+	bool success =
+		robot -> setChildPosition(partToMutate->first, childPosition, PRINT_ERRORS);
 
 	return success;
 }

@@ -989,38 +989,15 @@ bool RobotRepresentation::replacePart(const std::string& partToReplaceId,
 		}
 		return false;
 	}
-// check if the number of child and the size of newChildPosition is coherent
-	if(partToReplace -> getChildrenCount() != newChildPosition.size()){
-		if (printErrors) {
-			std::cerr << "The partToReplace has " << partToReplace -> getChildrenCount()
-						<< "and the size of newChildPosition is " << newChildPosition.size()
-						<< ". If partToReplace has X children, the vector must provide X positions !"
-						<< std::endl;
-		}
-		return false;
-	}
+
 //check if partToReplace is the root or not
 	bool isTheRoot = false;
 	if (partToReplace->getId().compare(bodyTree_->getId()) == 0) {
 		isTheRoot = true;
 	}
-//check the coherence in the vector newChildPosition
-	for(int i = 0; i<newChildPosition.size(); i++){
-		if(newChildPosition[i] == 0 && !isTheRoot){
-			if (printErrors) {
-				std::cerr << "The position 0 is taken by the parent !" << std::endl;
-			}
-			return false;
-		}
-		if(newChildPosition[i] > newPart -> getArity()){
-			if (printErrors) {
-				std::cerr << "The child position is " << newChildPosition[i]
-						<< "and must be smaller than " << newPart -> getArity() + 1
-						<< std::endl;
-			}
-			return false;
-		}	
-	}
+//Check the coherency of the vector newChildPosition
+	if(check(partToReplace -> getChildrenCount(), newChildPosition, isTheRoot, printErrors))
+		return false;
 
 // get the parent of the partToReplace and set it on newPart
 	PartRepresentation* parent;
@@ -1030,17 +1007,51 @@ bool RobotRepresentation::replacePart(const std::string& partToReplaceId,
 	}
 
 // get child of partToReplaceId and set it on newPart
+	unsigned int posCount = 0;
+	boost::shared_ptr<PartRepresentation> childPart;
 	if(partToReplace -> getChildrenCount() != 0){
-		int positionCounter = 0;
-		for(int i = 0; i < partToReplace -> getArity(); i++){
-			if(partToReplace -> getChild(i) != NULL){
-				newPart -> setChild(newChildPosition[i], partToReplace -> getChild(i));
-				positionCounter++;
+		for(int i = 0; i < partToReplace -> getArity(); i++)
+			childPart = partToReplace -> getChild(i);
+			if(childPart != NULL){
+				newPart -> setChild(newChildPosition[posCount], childPart);
+				posCount++;
 			}
-		}
+		
 	}
 // remove partToReplace
 	idToPart_.erase(partToReplaceId);
+	return true;
+}
+
+bool RobotRepresentation::setChildPosition(const std::string& partId,  
+			std::vector<unsigned int> newChildPosition,
+			bool printErrors){
+
+	boost::shared_ptr<PartRepresentation> part = idToPart_[partId].lock();
+//check if there are child
+	if(part -> getChildrenCount() == 0)
+		return true;
+
+//check if the part is the root or not
+	bool isTheRoot = false;
+	if (part->getId().compare(bodyTree_->getId()) == 0) {
+		isTheRoot = true;
+	}
+//check the coherency of the vector newChildPosition
+	if(check(part -> getChildrenCount(), newChildPosition, isTheRoot, printErrors))
+		return false;
+
+//Set the newChildPosition
+	//save all the child in a vector
+	std::vector<boost::shared_ptr<PartRepresentation>> child;
+	for(int i = 0; i < part->getArity(); i++){
+		if(part->getChild(i)!=NULL)
+			child.push_back(part->getChild(i));
+	}
+	//set all the child in the new position
+	for(int i = 0; i < child.size(); i++)
+			part -> setChild(newChildPosition[i], child[i]);
+	
 	return true;
 }
 
@@ -1134,6 +1145,40 @@ bool RobotRepresentation::check() {
 	// only partially checked
 	return true;
 
+}
+
+bool RobotRepresentation::check(unsigned int childNumber, std::vector <unsigned int> chilPosition,
+			bool isTheRoot, bool printErrors){
+
+// check if the number of child and the size of chilPosition is coherent
+	if(childNumber != chilPosition.size()){
+		if (printErrors) {
+			std::cerr << "The partToReplace has " << childNumber
+						<< "and the size of chilPosition is " << chilPosition.size()
+						<< ". If partToReplace has X children, the vector must provide X positions !"
+						<< std::endl;
+		}
+		return false;
+	}
+
+//check the coherence in the vector chilPosition
+	for(int i = 0; i<chilPosition.size(); i++){
+		if(chilPosition[i] == 0 && !isTheRoot){
+			if (printErrors) {
+				std::cerr << "The position 0 is taken by the parent !" << std::endl;
+			}
+			return false;
+		}
+		if(chilPosition[i] > childNumber){
+			if (printErrors) {
+				std::cerr << "The child position is " << chilPosition[i]
+						<< "and must be smaller than " << childNumber + 1
+						<< std::endl;
+			}
+			return false;
+		}	
+	}
+	return true;
 }
 
 std::string RobotRepresentation::toString() {

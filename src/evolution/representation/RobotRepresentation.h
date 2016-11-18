@@ -204,7 +204,7 @@ public:
 	*
 	*@param partToreplaceId id of the part to replace
 	*@param newPart the part that will replace the old one.
-	*@param A vector that have the position of children on the New part
+	*@param A vector that have the slot position of children on the New part
 	*		vector = (positionFirstChild, positionSecondChild, ..., positionLastChild)
 	*@return true if the operation completed successfully, false otherwise
 	*/
@@ -212,6 +212,18 @@ public:
 			boost::shared_ptr<PartRepresentation> newPart, 
 			std::vector<unsigned int> newChildPosition,
 			bool printErrors=true);
+
+	/**
+	*Change a part into another one
+	*
+	*@param partId id of the part that will change his children position
+	*@param A vector that have the new slot position of children
+	*		vector = (positionFirstChild, positionSecondChild, ..., positionLastChild)
+	*@return true if the operation completed successfully, false otherwise
+	*/
+	bool setChildPosition(const std::string& partId,  
+				std::vector<unsigned int> newChildPosition,
+				bool printErrors = true);
 
 	/**
 	 * @return the id of the root body part
@@ -261,7 +273,11 @@ private:
 	 */
 	bool addClonesToMap(boost::shared_ptr<PartRepresentation> part,
 			std::map<std::string, std::string> &neuronReMapping);
-
+	
+	//code helper for the function replacePart and setChildPosition
+	bool check(unsigned int childNumber, std::vector <unsigned int> chilPosition,
+				bool isTheRoot, bool printErrors);
+	
 	/**
 	 * Points to the root of the robot body tree
 	 */
