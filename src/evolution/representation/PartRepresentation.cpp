@@ -50,6 +50,21 @@ unsigned int PartRepresentation::getArity() {
 	return arity_;
 }
 
+bool PartRepresentation::setArity(unsigned int arity, std::string partType){
+
+//check if the bodyPartType as the right to mutate its connection
+	if(!VARIABLE_ARITY_MAP.at(partType))
+		return false;
+//check if the newArity is in the range	
+	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
+					std::make_pair(partType, 0));
+	if(arity<range.first || arity>range.second)
+		return false;
+
+	arity_ = arity;
+	return true;
+}
+
 unsigned int PartRepresentation::numDescendants() {
 
 	int descendants = 0;

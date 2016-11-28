@@ -85,6 +85,14 @@ namespace robogen {
 				return distanceFaceCenter_;
 			}
 
+			inline bool isCore() {
+				return isCore_;
+			}
+
+			inline bool hasSensors() {
+				return hasSensors_;
+			}
+
 		private:
 
 			int faceNumber_;
@@ -93,7 +101,8 @@ namespace robogen {
 			float distanceFaceCenter_;
 			boost::shared_ptr<SimpleBody> Root_;
 			bool initialisationDone_; //I can't put a default value on the function declared in Model.h
-
+			bool isCore_;
+			bool hasSensors_;
 			std::vector <dReal> constructPlaneVector();
 			std::vector <unsigned int> constructPolygonVector();
 			std::vector <dReal> constructPointsVector();

@@ -55,6 +55,10 @@ std::basic_ostream<CharT, Traits>& operator<<(
 const double RobogenUtils::EPSILON = 1e-7;
 const double RobogenUtils::EPSILON_2 = 1e-5;
 
+
+//Helper of the function RobogenUtils::connect
+bool addExtraSeparation(boost::shared_ptr<Model> a, boost::shared_ptr<Model> b);
+
 RobogenUtils::RobogenUtils() {
 
 }
@@ -81,7 +85,13 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 	// e.g. all bricks should be in default orientation
 	// The all Parametric models should be in default orientation
 #ifdef ENFORCE_PLANAR
-	if (boost::dynamic_pointer_cast<CoreComponentModel>(b)) {
+	if(boost::dynamic_pointer_cast<ParametricPrismModel>(b)){
+		// enforce root being in orientation 0
+		if (boost::dynamic_pointer_cast<CoreComponentModel>(b)->isCore()) {
+			b->setOrientationToParentSlot(0);
+		}
+	}
+	else if (boost::dynamic_pointer_cast<CoreComponentModel>(b)) {
 		// enforce root being in orientation 0
 		if (boost::dynamic_pointer_cast<CoreComponentModel>(b)->isCore()) {
 			b->setOrientationToParentSlot(0);
@@ -154,17 +164,14 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 	osg::Vec3 aSlotNewPos = bSlotPos;
 	osg::Vec3 aSlotPos = a->getSlotPosition(slotA);
 
-	if (boost::dynamic_pointer_cast<CoreComponentModel>(a) &&
-			boost::dynamic_pointer_cast<CoreComponentModel>(b)) {
-
-		// handle situation between two fixed bricks, really there is a
+	if(addExtraSeparation(a, b)){
+		// handle situation between two fixed bricks/Prism, really there is a
 		// connecting element there, but for now we just add the extra
 		// separation to solve problem with self intersections
 		// TODO actually add in connecting element
 
 		aSlotPos += a->getSlotAxis(slotA) *
 				(2 * CoreComponentModel::SLOT_THICKNESS);
-
 	}
 
 	osg::Vec3 aTranslation = aSlotNewPos - aSlotPos;
@@ -244,6 +251,27 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 			connectionJointGroup);
 	return joint;
 
+}
+
+bool addExtraSeparation(boost::shared_ptr<Model> a, boost::shared_ptr<Model> b){
+
+	if (boost::dynamic_pointer_cast<CoreComponentModel>(a) && 
+		boost::dynamic_pointer_cast<CoreComponentModel>(b))
+		return true;
+
+	if (boost::dynamic_pointer_cast<ParametricPrismModel>(a) && 
+		boost::dynamic_pointer_cast<CoreComponentModel>(b))
+		return true;
+
+	if (boost::dynamic_pointer_cast<CoreComponentModel>(a) && 
+		boost::dynamic_pointer_cast<ParametricPrismModel>(b))
+		return true;
+
+	if (boost::dynamic_pointer_cast<ParametricPrismModel>(a) && 
+		boost::dynamic_pointer_cast<ParametricPrismModel>(b))
+		return true;
+	
+	return false;
 }
 
 boost::shared_ptr<Model> RobogenUtils::createModel(

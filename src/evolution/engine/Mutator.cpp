@@ -386,7 +386,7 @@ bool Mutator::mutateBody(boost::shared_ptr<RobotRepresentation>& robot) {
 	//Define in wich order the mutation's operation is done
 	/*
 	* mutateArity is do right after remove Subtree because it can remove
-	* only an empty face.
+	* only an empty face in order to not change the probability of removeSubtree
 	*/
 	bool mutated = false;
 	MutOpPair mutOpPairs[] = { 
@@ -864,7 +864,7 @@ bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 
 //check if the newArity is in the range
 	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
-					std::make_pair(PART_TYPE_PARAM_PRISM, 0));
+					std::make_pair(partType, 0));
 	if(newArity<range.first || newArity>range.second)
 		return false;
 
@@ -912,14 +912,12 @@ bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 			}
 		}	
 	}
-	//Put the new arity at the begining of the vector Params 
-	//because in PartRepresentation::create, the arity will be remove of the vector Params
-std::vector<double> parameters = partToMutate->second.lock()-> getParams();
-parameters.insert(parameters.begin(), newArity);
-	//replace the node by the mutate one
+	//Set the new Arity
+	if(!partToMutate->second.lock()->setArity(newArity, partType))
+		return false; 
+	//Set the newChildPosition
 	bool success =
 		robot -> setChildPosition(partToMutate->first, childPosition, PRINT_ERRORS);
-
 	return success;
 }
 

@@ -102,6 +102,12 @@ public:
 	std::vector<double> &getParams();
 
 	/**
+	 * Set a new arity (only for variable arity part)
+	 * return true if the operation success
+	 */
+	bool setArity(unsigned int arity, std::string partType);
+	
+	/**
 	 * @return arity = number of child slots of part
 	 */
 	unsigned int getArity();
