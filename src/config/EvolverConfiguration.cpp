@@ -676,10 +676,6 @@ bool EvolverConfiguration::init(std::string configFileName) {
 		}
 	}
 
-
-
-
-
 	return true;
 }
 

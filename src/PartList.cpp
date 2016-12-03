@@ -129,38 +129,40 @@ std::map<std::string, bool> initVariableArityMap() {
 #ifdef ALLOW_CARDANS
 	variableArityMap[PART_TYPE_ACTIVE_CARDAN] = false;
 #endif
+
 	variableArityMap[PART_TYPE_ACTIVE_HINGE] = false;
+
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
 	variableArityMap[PART_TYPE_ACTIVE_WHEEL] = false;
 	variableArityMap[PART_TYPE_ACTIVE_WHEG] = false;
 #endif
-#ifdef ENFORCE_PLANAR
-	variableArityMap[PART_TYPE_CORE_COMPONENT] = false;
-	variableArityMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = false;
-	variableArityMap[PART_TYPE_FIXED_BRICK] = false;
-	variableArityMap[PART_TYPE_PARAM_PRISM]	= true;
 
 	variableArityMap[PART_TYPE_CORE_COMPONENT] = false;
 	variableArityMap[PART_TYPE_CORE_COMPONENT_NO_IMU] = false;
 	variableArityMap[PART_TYPE_FIXED_BRICK] = false;
-	variableArityMap[PART_TYPE_PARAM_PRISM]	= false;
-#endif
+	variableArityMap[PART_TYPE_PARAM_PRISM]	= true;
 	variableArityMap[PART_TYPE_LIGHT_SENSOR] = false;
 	variableArityMap[PART_TYPE_PARAM_JOINT] = false;
+
 #ifdef ALLOW_CARDANS
 	variableArityMap[PART_TYPE_PASSIVE_CARDAN] = false;
 #endif
+
 	variableArityMap[PART_TYPE_PASSIVE_HINGE] = false;
+
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
 	variableArityMap[PART_TYPE_PASSIVE_WHEEL] = false;
 	variableArityMap[PART_TYPE_ROTATOR] = false;
 #endif
+
 #ifdef IR_SENSORS_ENABLED
 	variableArityMap[PART_TYPE_IR_SENSOR] = false;
 #endif
+
 #ifdef TOUCH_SENSORS_ENABLED
 	variableArityMap[PART_TYPE_TOUCH_SENSOR] = false;
 #endif
+
 	return variableArityMap;
 }
 

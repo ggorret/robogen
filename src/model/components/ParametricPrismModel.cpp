@@ -31,7 +31,8 @@
 
 namespace robogen {
 /************************************************************
-*	WARNING: the constance MASS_PRISM is wrong
+*	TODO: 	the constance MASS_PRISM is wrong so complet the
+*			funtion ParametricPrismModel::computePolygon_dMass
 *
 *************************************************************/
 	const float ParametricPrismModel::MASS_PRISM = inGrams(100);
@@ -41,9 +42,14 @@ namespace robogen {
 	const float ParametricPrismModel::SLOT_THICKNESS = inMm(1.5);
 
 	ParametricPrismModel::ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace,
-			std::string id, int faceNumber):
-			Model(odeWorld, odeSpace, id),
-			faceNumber_(faceNumber){
+			std::string id, int faceNumber, bool isCore, bool hasSensors):
+			PerceptiveComponent(odeWorld, odeSpace, id),
+			faceNumber_(faceNumber), isCore_(isCore), hasSensors_(hasSensors){
+				
+				if (hasSensors) {
+					sensor_.reset(new ImuSensor(id + "-IMU"));
+				}
+
 				float PrismeFaceAngle = osg::DegreesToRadians(360.0/(float)faceNumber_);
 
 				ParametricPrismModel::distanceFaceCenter_ = 0.5*WIDTHY/(tan(PrismeFaceAngle/2.0));
@@ -85,7 +91,7 @@ namespace robogen {
 
 /* create a mass for the ConvexPolygon
  * Currently we use a cylinder as approx of prism
- * TODO: calc exact moment of inertia for prism and his mass
+ * TODO: Implement the exact moment of inertia and his mass for a general prism
  */
 	dMass ParametricPrismModel::computePolygon_dMass(){
 		    dMass massOde;
@@ -305,5 +311,22 @@ std::vector <dReal> ParametricPrismModel::constructPointsVector(){
 		if(initialisationDone_)
 			return quat * rotation * tangent;
 		return rotation * tangent;
+	}
+	
+	void ParametricPrismModel::getSensors(
+		std::vector<boost::shared_ptr<Sensor> >& sensors) {
+		if (sensor_ != NULL) {
+			sensor_->getSensors(sensors);
+		}
+	}
+
+	void ParametricPrismModel::updateSensors(boost::shared_ptr<Environment>& env) {
+		if (sensor_ != NULL) {
+			dVector3 gravity;
+			dWorldGetGravity(getPhysicsWorld(), gravity);
+			sensor_->update(this->getRootPosition(), this->getRootAttitude(),
+					env->getTimeElapsed(),
+					osg::Vec3(gravity[0], gravity[1], gravity[2]));
+		}
 	}
 }

@@ -838,21 +838,35 @@ bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 
 	RobotRepresentation::IdPartMap::const_iterator partToMutate = idPartMap.begin();
 	std::advance(partToMutate, dist(rng_));
-	
+
 //check if the bodyPartType as the right to mutate its connection
 	const std::string partType = partToMutate->second.lock()->getType();
 	if(!VARIABLE_ARITY_MAP.at(partType))
 		return false;
+// Gael Debug ***********************************************************************
+	std::cout 	<< "in the function Mutator::mutateArity with " 
+				<< partType
+				<< std::endl;
+//***********************************************************************************
 
-//find the last slot ID
-	unsigned int partToMutateLastSlotId = 0;
+//find the last potential Child ID
+	unsigned int partToMutateLastChildId = partToMutate->second.lock()-> getArity()-1;
+
+//find the last ID slot	
+	unsigned int partToMutateLastSlotId;
 	if(partToMutate->second.lock()->getParent() == NULL)
 		partToMutateLastSlotId = partToMutate->second.lock()-> getArity()-1;
 	else
 		partToMutateLastSlotId = partToMutate->second.lock()-> getArity();
 
 //mutate the number of connection with discret Gaussian
-	int newArity = partToMutateLastSlotId + 1;
+	int newArity = partToMutateLastChildId + 1;
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "the current Arity is " 
+				<< newArity
+				<< std::endl;
+	//***********************************************************************************
+
 	float arityModifier = (normalDistribution_(rng_) * conf_->arityParamSigma);
 	if(arityModifier > 0)
 		arityModifier = ceil(arityModifier);
@@ -861,6 +875,12 @@ bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 	else
 		return false;
 	newArity += arityModifier;
+
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "the new Arity is " 
+				<< newArity
+				<< std::endl;
+	//***********************************************************************************
 
 //check if the newArity is in the range
 	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
@@ -871,21 +891,42 @@ bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 // Mutate the part
 	// set the new position of children
 	std::vector<unsigned int> childPosition;
-	
+	std::vector<boost::shared_ptr<PartRepresentation> > children;
+	//Gael Debug
+	int oldP=-1;
 		//choose a free slot to remove
 	if(arityModifier<0){
 		std::vector<unsigned int> freeSlots = partToMutate->second.lock()->getFreeSlots();
+		
 		if (freeSlots.size() > 0) {
-
 			boost::random::uniform_int_distribution<> freeSlotsDist(0, freeSlots.size() - 1);
 			unsigned int selectedSlotId = freeSlots[freeSlotsDist(rng_)];
+		
+		// Gael Debug ***********************************************************************
+		std::cout 	<< "the freeSlots size is "
+					<< freeSlots.size()
+					<< std::endl
+					<< "the freeSlots position:";
+					for(int i=0; i<freeSlots.size(); i++){
+						std::cout 	<< " " << freeSlots[i];
+					}
+
+		std::cout	<< std::endl
+					<< "the supprimed face is " 
+					<< selectedSlotId
+					<< std::endl;
+		//***********************************************************************************
+
+
 			//set position of children
-			for(int i = 0; i <= partToMutateLastSlotId; i++){
+			for(int i = 0; i <= partToMutateLastChildId; i++){
 				if(partToMutate->second.lock()->getChild(i)!= NULL){
 					if(i<selectedSlotId)
 						childPosition.push_back(i);
 					else
 						childPosition.push_back(i+arityModifier);
+				//Gael Debug
+				oldP = i;
 				}
 			}
 		}
@@ -898,20 +939,56 @@ bool Mutator::mutateArity(boost::shared_ptr<RobotRepresentation>& robot){
 		boost::random::uniform_int_distribution<>slotDist1(0, partToMutateLastSlotId);
 		unsigned int slotId1 = slotDist1(rng_);
 		int slotId2 = slotId1 - 1;
-		if(slotId2<0)
+		//take in account the special case of a new face between 0 and the Last slot
+		unsigned int slotMin = 0;
+		if(slotId2<0){
 			slotId2 = partToMutateLastSlotId;
+			slotMin = partToMutateLastSlotId;
+		}
+		else
+			slotMin = std::min(slotId1, (unsigned int)slotId2);
+		
+		// Gael Debug ***********************************************************************
+		std::cout 	<< "the new face is between " 
+					<< slotId1
+					<< " and "
+					<< slotId2
+					<< std::endl;
+		//***********************************************************************************
 
 			//set position of children
-		unsigned int slotMin = std::min(slotId1, (unsigned int)slotId2);
-		for(int i = 0; i <= partToMutateLastSlotId; i++){
+		for(int i = 0; i <= partToMutateLastChildId; i++){
 			if(partToMutate->second.lock()->getChild(i)!= NULL){
-				if(i>slotMin)
+		// Gael Debug ***********************************************************************		
+				std::cout 	<< "i = " 
+							<< i
+							<< " slotMin = "
+							<< slotMin
+							<< std::endl;
+		//***********************************************************************************
+
+				if(i<=slotMin)
 					childPosition.push_back(i);
 				else
 					childPosition.push_back(i+arityModifier);
+				
+				// Gael Debug ***********************************************************************		
+				std::cout 	<< "childPosition = " 
+							<< childPosition[0]
+							<< std::endl;
+							oldP = i;
+				//***********************************************************************************	
 			}
 		}	
 	}
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "the old child position is "
+				<< oldP
+				<< " the new child position is " 
+				<< childPosition[0]
+				<< std::endl;
+	//***********************************************************************************
+	
 	//Set the new Arity
 	if(!partToMutate->second.lock()->setArity(newArity, partType))
 		return false; 

@@ -155,11 +155,11 @@ bool robotTextFileReadPartLine(std::ifstream &file, unsigned int &indent,
 			//return false;
 		}
 
-		// BASIL
 		// Do not normalize arity param
 		unsigned int iParam0;
 		if(VARIABLE_ARITY_MAP.at(PART_TYPE_MAP.at(type))){
 			iParam0 = 1;
+			params.push_back(rawParams[0]);
 		}
 		else {
 			iParam0 = 0;
@@ -465,11 +465,13 @@ bool RobotRepresentation::init(std::string robotTextFile) {
 		for (; indent < (parentStack.size());) {
 			parentStack.pop();
 		}
+
 		current = PartRepresentation::create(type, id, orientation, params);
 		if (!current) {
 			std::cout << "Failed to create node." << std::endl;
 			return false;
 		}
+
 		if (parentStack.top()->getChild(slot)) {
 			std::cout << "Attempt to overwrite child "
 					<< parentStack.top()->getChild(slot)->getId() << " of "
@@ -997,9 +999,15 @@ bool RobotRepresentation::replacePart(const std::string& partToReplaceId,
 	if (partToReplace->getId().compare(bodyTree_->getId()) == 0) {
 		isTheRoot = true;
 	}
-//Check the coherency of the vector newChildPosition
-	if(check(partToReplace -> getChildrenCount(), newChildPosition, isTheRoot, printErrors))
+//check the coherency of the vector newChildPosition
+	if(!check(newPart, newChildPosition, printErrors)){
+		if(printErrors){
+		std::cout	<< "RobotRepresentation::replacePart: " 
+					<< "child vector not coherent"
+					<< std::endl;
+		}
 		return false;
+	}
 
 // get the parent of the partToReplace and set it on newPart
 	PartRepresentation* parent;
@@ -1033,27 +1041,61 @@ bool RobotRepresentation::setChildPosition(const std::string& partId,
 //check if there are child
 	if(part -> getChildrenCount() == 0)
 		return true;
+// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::setChildPosition 1"
+				<< std::endl
+				<< "Arity = "
+				<< part->getArity()
+				<< std::endl;
+//***********************************************************************************
 
-//check if the part is the root or not
-	bool isTheRoot = false;
-	if (part->getId().compare(bodyTree_->getId()) == 0) {
-		isTheRoot = true;
-	}
 //check the coherency of the vector newChildPosition
-	if(check(part -> getChildrenCount(), newChildPosition, isTheRoot, printErrors))
+	if(!check(part, newChildPosition, printErrors)){
+		if(printErrors){
+		std::cout	<< "RobotRepresentation::setChildPosition: "
+					<< "child vector not coherent"
+					<< std::endl;
+		}
 		return false;
+	}
+// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::setChildPosition 2"
+				<< std::endl;
+//***********************************************************************************
 
 //Set the newChildPosition
 	//save all the children in a vector
 	std::vector<boost::shared_ptr<PartRepresentation>> child;
-	for(int i = 0; i < part->getArity(); i++){
+	unsigned int lastChildId = part->getArity()-1;
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::setChildPosition 2.1: "
+				<< std::endl
+				<< "lastChildId = "
+				<< lastChildId
+				<< std::endl;
+	//***********************************************************************************
+	for(int i = 0; i <= lastChildId; i++){
 		if(part->getChild(i)!=NULL)
 			child.push_back(part->getChild(i));
+		// Gael Debug ***********************************************************************
+		std::cout << "RobotRepresentation::setChildPosition 2.2:"
+				  << std::endl
+				  << "i = "
+				  << i
+				  << std::endl;
+		//***********************************************************************************
 	}
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::setChildPosition 3"
+				<< std::endl;
+	//***********************************************************************************
 	//set all the child in the new position
 	for(int i = 0; i < child.size(); i++)
 			part -> setChild(newChildPosition[i], child[i]);
-	
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::setChildPosition return true"
+				<< std::endl;
+	//***********************************************************************************
 	return true;
 }
 
@@ -1149,37 +1191,43 @@ bool RobotRepresentation::check() {
 
 }
 
-bool RobotRepresentation::check(unsigned int childNumber, std::vector <unsigned int> chilPosition,
-			bool isTheRoot, bool printErrors){
-
-// check if the number of child and the size of chilPosition is coherent
-	if(childNumber != chilPosition.size()){
-		if (printErrors) {
-			std::cerr << "The partToReplace has " << childNumber
-						<< "and the size of chilPosition is " << chilPosition.size()
-						<< ". If partToReplace has X children, the vector must provide X positions !"
-						<< std::endl;
-		}
-		return false;
-	}
-
+bool RobotRepresentation::check(boost::shared_ptr<PartRepresentation> part, std::vector <unsigned int> chilPosition,
+								bool printErrors){
+// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::check 1"
+				<< std::endl;
+//***********************************************************************************
+unsigned int LastChildId = part -> getArity()-1;
 //check the coherence in the vector chilPosition
 	for(int i = 0; i<chilPosition.size(); i++){
-		if(chilPosition[i] == 0 && !isTheRoot){
+			
+		if(chilPosition[i] < 0){
 			if (printErrors) {
-				std::cerr << "The position 0 is taken by the parent !" << std::endl;
+				std::cerr << "The child position must be >= 0" << std::endl;
 			}
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::check 2.1"
+				<< std::endl;
+	//***********************************************************************************
 			return false;
 		}
-		if(chilPosition[i] > childNumber){
+		if(chilPosition[i] > LastChildId){
 			if (printErrors) {
 				std::cerr << "The child position is " << chilPosition[i]
-						<< "and must be smaller than " << childNumber + 1
-						<< std::endl;
+						  << "and must be smaller than " << LastChildId + 1
+						  << std::endl;
 			}
+			// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::check 2.2"
+				<< std::endl;
+//***********************************************************************************
 			return false;
-		}	
-	}
+		}
+	}	
+	// Gael Debug ***********************************************************************
+	std::cout 	<< "RobotRepresentation::check return true"
+				<< std::endl;
+	//***********************************************************************************
 	return true;
 }
 

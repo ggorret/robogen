@@ -275,8 +275,8 @@ private:
 			std::map<std::string, std::string> &neuronReMapping);
 	
 	//code helper for the function replacePart and setChildPosition
-	bool check(unsigned int childNumber, std::vector <unsigned int> chilPosition,
-				bool isTheRoot, bool printErrors);
+	bool check(boost::shared_ptr<PartRepresentation>, std::vector <unsigned int> chilPosition,
+				bool printErrors);
 	
 	/**
 	 * Points to the root of the robot body tree

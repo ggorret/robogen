@@ -87,11 +87,11 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 #ifdef ENFORCE_PLANAR
 	if(boost::dynamic_pointer_cast<ParametricPrismModel>(b)){
 		// enforce root being in orientation 0
-		if (boost::dynamic_pointer_cast<CoreComponentModel>(b)->isCore()) {
+		if (boost::dynamic_pointer_cast<ParametricPrismModel>(b)->isCore()) {
 			b->setOrientationToParentSlot(0);
 		}
 	}
-	else if (boost::dynamic_pointer_cast<CoreComponentModel>(b)) {
+	if (boost::dynamic_pointer_cast<CoreComponentModel>(b)) {
 		// enforce root being in orientation 0
 		if (boost::dynamic_pointer_cast<CoreComponentModel>(b)->isCore()) {
 			b->setOrientationToParentSlot(0);
@@ -111,7 +111,7 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 	} else {
 		a->setParentOrientation(b->getOrientationToRoot());
 	}
-	if (boost::dynamic_pointer_cast<CoreComponentModel>(a)) {
+	if (boost::dynamic_pointer_cast<CoreComponentModel>(a) || boost::dynamic_pointer_cast<ParametricPrismModel>(a)) {
 #ifdef DEBUG_CONNECT
 		std::cout << "Core Component with orientation to parent " <<
 		a->getOrientationToParentSlot() << " and orientation to root "
@@ -321,9 +321,8 @@ boost::shared_ptr<Model> RobogenUtils::createModel(
 			return boost::shared_ptr<Model>();
 		}
 
-		model.reset(
-				new ParametricPrismModel(odeWorld, odeSpace, id,
-						bodyPart.evolvableparam(0).paramvalue()));
+		model.reset(new ParametricPrismModel(odeWorld, odeSpace, id,
+						bodyPart.evolvableparam(0).paramvalue(), false, false));
 						
 
 #ifdef ALLOW_ROTATIONAL_COMPONENTS

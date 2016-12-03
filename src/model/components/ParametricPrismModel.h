@@ -29,13 +29,16 @@
 #ifndef ROBOGEN_PARAMETRIC_PRISM_MODEL_H_
 #define ROBOGEN_PARAMETRIC_PRISM_MODEL_H_
 
-#include "model/Model.h"
+//#include "model/Model.h"
+#include "model/PerceptiveComponent.h"
+#include "model/sensors/ImuSensor.h"
+#include "PartList.h"
 
 namespace robogen {
 /**
  * A parametric prism is modelled with ConvexBody
  */
-	class ParametricPrismModel: public Model {
+	class ParametricPrismModel: public PerceptiveComponent {
 
 		public:
 
@@ -53,7 +56,7 @@ namespace robogen {
 			 * @param FaceNumber = number of prism face (without counting the face on the top and the bottom)
 			 */
 			ParametricPrismModel(dWorldID odeWorld, dSpaceID odeSpace, std::string id,
-					int faceNumber);
+					int faceNumber, bool isCore, bool hasSensors);
 
 			virtual ~ParametricPrismModel();
 
@@ -68,6 +71,10 @@ namespace robogen {
 			virtual osg::Vec3 getSlotOrientation(unsigned int i);
 
 			virtual osg::Vec3 getSlotAxis(unsigned int i);
+
+			virtual void getSensors(std::vector<boost::shared_ptr<Sensor> >& sensors);
+
+			virtual void updateSensors(boost::shared_ptr<Environment>& env);
 
 			inline int getFaceNumber() {
 				return faceNumber_;
@@ -98,11 +105,16 @@ namespace robogen {
 			int faceNumber_;
 			int topFaceSlotId_;
 			int bottomFaceSlotId_;
+
 			float distanceFaceCenter_;
-			boost::shared_ptr<SimpleBody> Root_;
+			
 			bool initialisationDone_; //I can't put a default value on the function declared in Model.h
 			bool isCore_;
 			bool hasSensors_;
+
+			boost::shared_ptr<ImuSensor> sensor_;
+			boost::shared_ptr<SimpleBody> Root_;
+
 			std::vector <dReal> constructPlaneVector();
 			std::vector <unsigned int> constructPolygonVector();
 			std::vector <dReal> constructPointsVector();
