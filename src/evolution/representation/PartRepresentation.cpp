@@ -53,11 +53,11 @@ unsigned int PartRepresentation::getArity() {
 bool PartRepresentation::setArity(unsigned int arity, std::string partType){
 
 //check if the bodyPartType as the right to mutate its connection
-	if(!VARIABLE_ARITY_MAP.at(partType))
+	if(!PART_TYPE_IS_VARIABLE_ARITY_MAP.at(partType))
 		return false;
 //check if the newArity is in the range	
-	std::pair<double, double> range = PART_TYPE_PARAM_RANGE_MAP.at(
-					std::make_pair(partType, 0));
+	std::pair<unsigned int, unsigned int> range = 
+		PART_TYPE_VARIABLE_ARITY_RANGE_MAP.at(partType);
 	if(arity<range.first || arity>range.second)
 		return false;
 
@@ -133,6 +133,72 @@ bool PartRepresentation::setChild(unsigned int n,
 
 }
 
+bool PartRepresentation::setChildren(std::vector<boost::shared_ptr<PartRepresentation>> children){
+	
+	unsigned int childrenSize = children.size();
+	boost::shared_ptr<PartRepresentation> child;
+
+	// check if the partType has the right to use this function
+	if(PART_TYPE_IS_VARIABLE_ARITY_MAP.at(this->getType()) == false){
+		std::cout 	<< "The part "
+					<< this->getType()
+					<< " hasn't the right to use the function" 
+					<< " PartRepresentation::setChildren"
+					<< std::endl;
+		return false;
+	}
+	//check if the vector children size = arity
+	if(children.size() != this->getArity()){
+		std::cout	<< "RobotRepresentation::setChildPosition: "
+					<< "children vector size is "
+					<< children.size()
+					<< " and must be the same of the arity, so "
+					<< this->getArity()
+					<< std::endl;
+		return false;
+	}
+//Gael Debug*************************************************************************
+	std::cout 	<< "Children = [";
+	for(int i=0; i<children.size(); i++){
+		if(children[i] != NULL)
+			std::cout 	<< " "
+						<< i;
+		else
+			std::cout 	<< " NULL";
+	}
+	std::cout 	<< " ]"
+				<< std::endl;
+//***********************************************************************************
+
+	children_.resize(childrenSize, boost::shared_ptr<PartRepresentation>());
+	for(int i=0; i<childrenSize; i++){
+		// don't try to access part if void
+		child = children[i];
+		if (child) {
+			child->setParent(this);
+			child->setPosition(i);
+		}
+		children_[i] = child;	
+	}
+
+//Gael Debug*************************************************************************
+	std::cout 	<< "Children_ = [";
+	for(int i=0; i<children.size(); i++){
+		if(children_[i] != NULL)
+			std::cout 	<< " "
+						<< i;
+		else
+			std::cout 	<< " NULL";
+	}
+	std::cout 	<< " ]"
+				<< std::endl;
+//***********************************************************************************
+
+std::cout << "*******************setChildrenEND********************"
+			<<std::endl;
+	return true;
+}
+
 boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 		std::string id, unsigned int orientation, std::vector<double> params) {
 	int arity;
@@ -158,7 +224,7 @@ boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 
 	// In order to save the compability with Mutator::mutateParams
 	// we will keep only the params that this function needs in the vector Params
-	if(VARIABLE_ARITY_MAP.at(partType)){
+	if(PART_TYPE_IS_VARIABLE_ARITY_MAP.at(partType)){
 		arity = params.at(0)-1; // remove the Parent Connection
 		params.erase(params.begin());
 	}
@@ -195,7 +261,7 @@ void PartRepresentation::addSubtreeToBodyMessage(
 	* TODO: if isTheCore put param->set_paramvalue(arity_)
 	*/
 	unsigned i0param = 0;
-	if(VARIABLE_ARITY_MAP.at(getType())){
+	if(PART_TYPE_IS_VARIABLE_ARITY_MAP.at(this->getType())){
 		robogenMessage::EvolvableParameter *param =
 					serialization->add_evolvableparam();
 		param->set_paramvalue(arity_ + 1);

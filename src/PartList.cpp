@@ -121,10 +121,7 @@ std::map<std::string, unsigned int> initPartTypeArityMap() {
 * A map that contain if the body part can evolve is arityMap
 * Warning: The parameter that define its arity is always the FIRST param
 */
-/*
-*TODO: change the name in initVariableArityMap
-*/
-std::map<std::string, bool> initVariableArityMap() {
+std::map<std::string, bool> initPartypeIsVariableArityMap() {
 	std::map<std::string, bool> variableArityMap;
 #ifdef ALLOW_CARDANS
 	variableArityMap[PART_TYPE_ACTIVE_CARDAN] = false;
@@ -205,6 +202,7 @@ std::map<std::string, unsigned int> initPartTypeParamCountMap() {
 }
 
 //when adding a new part with variable arity, the first range must be that of the arity
+// or something related to it then complet initPartTypeVariableArityRangeMap
 std::map<std::pair<std::string, unsigned int>, std::pair<double, double> >
 												initPartTypeParamRangeMap() {
 	std::map<std::pair<std::string, unsigned int>,
@@ -230,7 +228,7 @@ std::map<std::pair<std::string, unsigned int>, std::pair<double, double> >
 			std::make_pair(0.03, 0.08); // radius in m
 #endif
 	partTypeParamRangeMap[std::make_pair(PART_TYPE_PARAM_PRISM, 0)] =
-			std::make_pair(3, 8); // number of prism face
+			std::make_pair(3, 8); // Number of faces
 	return partTypeParamRangeMap;
 }
 
@@ -271,6 +269,23 @@ std::map<std::string, std::vector<std::string> > initPartTypeMotorsMap() {
 
 	return partTypeMotorsMap;
 }
+
+std::map<std::string, std::pair<unsigned int, unsigned int> > 
+				initPartTypeVariableArityRangeMap(){
+	std::map<std::string, std::pair<unsigned int, unsigned int> > 
+		partTypeVariableArityRangeMap;
+
+	//Arity of the Parametric Prism depend of his number of faces
+	std::pair<double, double> ranges = 
+	PART_TYPE_PARAM_RANGE_MAP.at(std::make_pair(PART_TYPE_PARAM_PRISM, 0));
+
+	partTypeVariableArityRangeMap[PART_TYPE_PARAM_PRISM] =
+			std::make_pair( (unsigned int) (ranges.first-1), 
+							(unsigned int) (ranges.second-1));
+	
+	return partTypeVariableArityRangeMap;
+}
+
 std::map<std::string, std::vector<std::string> > initPartTypeSensorsMap() {
 	std::map<std::string, std::vector<std::string> > partTypeSensorsMap;
 	{
@@ -349,8 +364,8 @@ const std::map<std::string, char> INVERSE_PART_TYPE_MAP =
 		inverseMap(PART_TYPE_MAP);
 const std::map<std::string, unsigned int> PART_TYPE_ARITY_MAP =
 		initPartTypeArityMap();
-const std::map<std::string, bool> VARIABLE_ARITY_MAP =
-		initVariableArityMap();
+const std::map<std::string, bool> PART_TYPE_IS_VARIABLE_ARITY_MAP =
+		initPartypeIsVariableArityMap();
 const std::map<std::string, unsigned int> PART_TYPE_PARAM_COUNT_MAP =
 		initPartTypeParamCountMap();
 const std::map<std::pair<std::string, unsigned int>,
@@ -360,6 +375,9 @@ const std::map<std::string, std::vector<std::string> > PART_TYPE_MOTORS_MAP =
 		initPartTypeMotorsMap();
 const std::map<std::string, std::vector<std::string> > PART_TYPE_SENSORS_MAP =
 		initPartTypeSensorsMap();
+const std::map<std::string, std::pair<unsigned int, unsigned int> > 
+		PART_TYPE_VARIABLE_ARITY_RANGE_MAP = 
+			initPartTypeVariableArityRangeMap();
 
 } /* namespace robogen */
 

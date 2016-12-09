@@ -157,15 +157,12 @@ bool robotTextFileReadPartLine(std::ifstream &file, unsigned int &indent,
 
 		// Do not normalize arity param
 		unsigned int iParam0;
-		if(VARIABLE_ARITY_MAP.at(PART_TYPE_MAP.at(type))){
+		if(PART_TYPE_IS_VARIABLE_ARITY_MAP.at(PART_TYPE_MAP.at(type)))
 			iParam0 = 1;
-			params.push_back(rawParams[0]);
-		}
-		else {
+		else
 			iParam0 = 0;
-		}
 
-		for (unsigned int i = iParam0; i < rawParams.size(); i++){
+		for (unsigned int i = 0; i < rawParams.size(); i++){
 			std::pair<double, double> ranges = PART_TYPE_PARAM_RANGE_MAP.at(
 					std::make_pair(PART_TYPE_MAP.at(type), i));
 			double rawParamValue = rawParams[i];
@@ -178,10 +175,14 @@ bool robotTextFileReadPartLine(std::ifstream &file, unsigned int &indent,
 				//return false;
 				exitRobogen(EXIT_FAILURE);
 			}
+			if(i<iParam0)
+				params.push_back(rawParams[i]);
 			//add param in [0,1]
-			params.push_back((fabs(ranges.first - ranges.second) < 1e-6) ? 0 :
-					(rawParamValue - ranges.first)
-							/ (ranges.second - ranges.first));
+			else{
+				params.push_back((fabs(ranges.first - ranges.second) < 1e-6) ? 0 :
+						(rawParamValue - ranges.first)
+								/ (ranges.second - ranges.first));
+			}
 		}
 		return true;
 	} 
@@ -969,133 +970,33 @@ bool RobotRepresentation::removePart(const std::string& partId,
 	}
 	return true;
 }
-/*
-*TODO: check if this function work correctly
-*/
-bool RobotRepresentation::replacePart(const std::string& partToReplaceId, 
-			boost::shared_ptr<PartRepresentation> newPart, 
-			std::vector<unsigned int> newChildPosition,
-			bool printErrors){
-
-// Set new ID for the newPart node
-	std::string newUniqueId = this->generateUniqueIdFromSomeId();
-	newPart->setId(newUniqueId);
-
-// check if the children of the old part can be put on the new one
-	boost::shared_ptr<PartRepresentation> partToReplace =
-				idToPart_[partToReplaceId].lock();
-	if(newPart -> getArity() < partToReplace -> getChildrenCount()){
-		if (printErrors) {
-			std::cerr << "Not enough free slots on the newPart "
-						<< "Need " << partToReplace -> getChildrenCount()
-						<< ", but only have " << newPart -> getArity()
-						<< std::endl;
-		}
-		return false;
-	}
-
-//check if partToReplace is the root or not
-	bool isTheRoot = false;
-	if (partToReplace->getId().compare(bodyTree_->getId()) == 0) {
-		isTheRoot = true;
-	}
-//check the coherency of the vector newChildPosition
-	if(!check(newPart, newChildPosition, printErrors)){
-		if(printErrors){
-		std::cout	<< "RobotRepresentation::replacePart: " 
-					<< "child vector not coherent"
-					<< std::endl;
-		}
-		return false;
-	}
-
-// get the parent of the partToReplace and set it on newPart
-	PartRepresentation* parent;
-	if(!isTheRoot){
-		parent = partToReplace -> getParent();
-		newPart -> setParent(parent);
-	}
-
-// get child of partToReplaceId and set it on newPart
-	unsigned int posCount = 0;
-	boost::shared_ptr<PartRepresentation> childPart;
-	if(partToReplace -> getChildrenCount() != 0){
-		for(int i = 0; i < partToReplace -> getArity(); i++)
-			childPart = partToReplace -> getChild(i);
-			if(childPart != NULL){
-				newPart -> setChild(newChildPosition[posCount], childPart);
-				posCount++;
-			}
-		
-	}
-// remove partToReplace
-	idToPart_.erase(partToReplaceId);
-	return true;
-}
 
 bool RobotRepresentation::setChildPosition(const std::string& partId,  
-			std::vector<unsigned int> newChildPosition,
+			std::vector<boost::shared_ptr<PartRepresentation>> children,
 			bool printErrors){
 
 	boost::shared_ptr<PartRepresentation> part = idToPart_[partId].lock();
-//check if there are child
-	if(part -> getChildrenCount() == 0)
-		return true;
-// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::setChildPosition 1"
-				<< std::endl
-				<< "Arity = "
-				<< part->getArity()
-				<< std::endl;
-//***********************************************************************************
 
-//check the coherency of the vector newChildPosition
-	if(!check(part, newChildPosition, printErrors)){
+//check the coherency of the vector children
+	if(children.size() != part->getArity()){
 		if(printErrors){
 		std::cout	<< "RobotRepresentation::setChildPosition: "
-					<< "child vector not coherent"
+					<< "children vector size is "
+					<< children.size()
+					<< " and must be the same of the arity, so "
+					<< part->getArity()
 					<< std::endl;
 		}
 		return false;
 	}
-// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::setChildPosition 2"
-				<< std::endl;
-//***********************************************************************************
 
-//Set the newChildPosition
-	//save all the children in a vector
-	std::vector<boost::shared_ptr<PartRepresentation>> child;
-	unsigned int lastChildId = part->getArity()-1;
-	// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::setChildPosition 2.1: "
-				<< std::endl
-				<< "lastChildId = "
-				<< lastChildId
+//Set the children
+	//Gael Debug*************************************************************************
+	std::cout 	<< "********************setChildren**********************"
 				<< std::endl;
 	//***********************************************************************************
-	for(int i = 0; i <= lastChildId; i++){
-		if(part->getChild(i)!=NULL)
-			child.push_back(part->getChild(i));
-		// Gael Debug ***********************************************************************
-		std::cout << "RobotRepresentation::setChildPosition 2.2:"
-				  << std::endl
-				  << "i = "
-				  << i
-				  << std::endl;
-		//***********************************************************************************
-	}
-	// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::setChildPosition 3"
-				<< std::endl;
-	//***********************************************************************************
-	//set all the child in the new position
-	for(int i = 0; i < child.size(); i++)
-			part -> setChild(newChildPosition[i], child[i]);
-	// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::setChildPosition return true"
-				<< std::endl;
-	//***********************************************************************************
+
+	part -> setChildren(children);
 	return true;
 }
 
@@ -1189,46 +1090,6 @@ bool RobotRepresentation::check() {
 	// only partially checked
 	return true;
 
-}
-
-bool RobotRepresentation::check(boost::shared_ptr<PartRepresentation> part, std::vector <unsigned int> chilPosition,
-								bool printErrors){
-// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::check 1"
-				<< std::endl;
-//***********************************************************************************
-unsigned int LastChildId = part -> getArity()-1;
-//check the coherence in the vector chilPosition
-	for(int i = 0; i<chilPosition.size(); i++){
-			
-		if(chilPosition[i] < 0){
-			if (printErrors) {
-				std::cerr << "The child position must be >= 0" << std::endl;
-			}
-	// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::check 2.1"
-				<< std::endl;
-	//***********************************************************************************
-			return false;
-		}
-		if(chilPosition[i] > LastChildId){
-			if (printErrors) {
-				std::cerr << "The child position is " << chilPosition[i]
-						  << "and must be smaller than " << LastChildId + 1
-						  << std::endl;
-			}
-			// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::check 2.2"
-				<< std::endl;
-//***********************************************************************************
-			return false;
-		}
-	}	
-	// Gael Debug ***********************************************************************
-	std::cout 	<< "RobotRepresentation::check return true"
-				<< std::endl;
-	//***********************************************************************************
-	return true;
 }
 
 std::string RobotRepresentation::toString() {

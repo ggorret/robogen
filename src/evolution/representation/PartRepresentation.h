@@ -130,6 +130,13 @@ public:
 	bool setChild(unsigned int n, boost::shared_ptr<PartRepresentation> part);
 
 	/**
+	*@param children the new vector children of the part
+	*the vector children_ will be updated with this function
+	*this function work only with part that can change its arity
+	*/
+	bool setChildren(std::vector<boost::shared_ptr<PartRepresentation>> children);
+
+	/**
 	 * Factory pattern to create derived classes, i.e. body part representations
 	 */
 	static boost::shared_ptr<PartRepresentation> create(char type,

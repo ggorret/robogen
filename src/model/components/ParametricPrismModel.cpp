@@ -35,7 +35,7 @@ namespace robogen {
 *			funtion ParametricPrismModel::computePolygon_dMass
 *
 *************************************************************/
-	const float ParametricPrismModel::MASS_PRISM = inGrams(100);
+	const float ParametricPrismModel::MASS_PRISM = inGrams(20);
 	const float ParametricPrismModel::MASS_CORE = MASS_PRISM + inGrams(34.3);
 	const float ParametricPrismModel::WIDTHY = inMm(41);
 	const float ParametricPrismModel::HEIGHTZ = inMm(35.5);
