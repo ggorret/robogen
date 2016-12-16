@@ -217,15 +217,14 @@ boost::shared_ptr<PartRepresentation> PartRepresentation::create(char type,
 		return boost::shared_ptr<PartRepresentation>();
 	}
 
-	/*
-	*TODO: 	the case if the parType with variable connection is a core
-	* 		in this case arty = params.at(0)
-	*/
-
 	// In order to save the compability with Mutator::mutateParams
 	// we will keep only the params that this function needs in the vector Params
 	if(PART_TYPE_IS_VARIABLE_ARITY_MAP.at(partType)){
-		arity = params.at(0)-1; // remove the Parent Connection
+		if(	partType == PART_TYPE_PARAM_PRISM_CORE ||
+			partType == PART_TYPE_PARAM_PRISM_CORE_NO_IMU)
+				arity =params.at(0);
+		else
+			arity = params.at(0)-1; // remove the Parent Connection
 		params.erase(params.begin());
 	}
 	else
@@ -264,7 +263,11 @@ void PartRepresentation::addSubtreeToBodyMessage(
 	if(PART_TYPE_IS_VARIABLE_ARITY_MAP.at(this->getType())){
 		robogenMessage::EvolvableParameter *param =
 					serialization->add_evolvableparam();
-		param->set_paramvalue(arity_ + 1);
+		if(	this->getType() == PART_TYPE_PARAM_PRISM_CORE ||
+			this->getType() == PART_TYPE_PARAM_PRISM_CORE_NO_IMU)
+			param->set_paramvalue(arity_);
+		else
+			param->set_paramvalue(arity_ + 1);
 		i0param = 1;
 	}
 	// repeated EvolvableParameter evolvableParam = 4;

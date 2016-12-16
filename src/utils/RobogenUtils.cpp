@@ -57,7 +57,10 @@ const double RobogenUtils::EPSILON_2 = 1e-5;
 
 
 //Helper of the function RobogenUtils::connect
-bool addExtraSeparation(boost::shared_ptr<Model> a, boost::shared_ptr<Model> b);
+bool isNeedExtraSeparation(boost::shared_ptr<Model> a, boost::shared_ptr<Model> b);
+//Helper of the function RobogenUtils::createModel
+bool checkParamCount(robogenMessage::BodyPart bodyPart);
+
 
 RobogenUtils::RobogenUtils() {
 
@@ -164,7 +167,7 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 	osg::Vec3 aSlotNewPos = bSlotPos;
 	osg::Vec3 aSlotPos = a->getSlotPosition(slotA);
 
-	if(addExtraSeparation(a, b)){
+	if(isNeedExtraSeparation(a, b)){
 		// handle situation between two fixed bricks/Prism, really there is a
 		// connecting element there, but for now we just add the extra
 		// separation to solve problem with self intersections
@@ -253,7 +256,7 @@ boost::shared_ptr<Joint> RobogenUtils::connect(boost::shared_ptr<Model> a,
 
 }
 
-bool addExtraSeparation(boost::shared_ptr<Model> a, boost::shared_ptr<Model> b){
+bool isNeedExtraSeparation(boost::shared_ptr<Model> a, boost::shared_ptr<Model> b){
 
 	if (boost::dynamic_pointer_cast<CoreComponentModel>(a) && 
 		boost::dynamic_pointer_cast<CoreComponentModel>(b))
@@ -298,13 +301,8 @@ boost::shared_ptr<Model> RobogenUtils::createModel(
 											false));
 
 	} else if (bodyPart.type().compare(PART_TYPE_PARAM_JOINT) == 0) {
-
-		if (bodyPart.evolvableparam_size() != 3) {
-			std::cerr
-					<< "The parametric brick does not encode 3 parameters. Exiting."
-					<< std::endl;
+		if(!checkParamCount(bodyPart))
 			return boost::shared_ptr<Model>();
-		}
 
 		model.reset(
 				new ParametricBrickModel(odeWorld, odeSpace, id,
@@ -313,16 +311,25 @@ boost::shared_ptr<Model> RobogenUtils::createModel(
 						bodyPart.evolvableparam(2).paramvalue()));
 
 	} else if (bodyPart.type().compare(PART_TYPE_PARAM_PRISM) == 0) {
-
-		if (bodyPart.evolvableparam_size() != 1) {
-			std::cerr
-					<< "The parametric prism does not encode 1 parameters. Exiting."
-					<< std::endl;
+		if(!checkParamCount(bodyPart))
 			return boost::shared_ptr<Model>();
-		}
 
 		model.reset(new ParametricPrismModel(odeWorld, odeSpace, id,
 						bodyPart.evolvableparam(0).paramvalue(), false, false));
+	
+	} else if (bodyPart.type().compare(PART_TYPE_PARAM_PRISM_CORE) == 0) {
+		if(!checkParamCount(bodyPart))
+			return boost::shared_ptr<Model>();
+
+		model.reset(new ParametricPrismModel(odeWorld, odeSpace, id,
+						bodyPart.evolvableparam(0).paramvalue(), true, true));
+
+	} else if (bodyPart.type().compare(PART_TYPE_PARAM_PRISM_CORE_NO_IMU) == 0) {
+		if(!checkParamCount(bodyPart))
+			return boost::shared_ptr<Model>();
+
+		model.reset(new ParametricPrismModel(odeWorld, odeSpace, id,
+						bodyPart.evolvableparam(0).paramvalue(), true, false));
 						
 
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
@@ -348,39 +355,25 @@ boost::shared_ptr<Model> RobogenUtils::createModel(
 #endif
 #ifdef ALLOW_ROTATIONAL_COMPONENTS
 	} else if (bodyPart.type().compare(PART_TYPE_PASSIVE_WHEEL) == 0) {
-
 		// Read radius
-		if (bodyPart.evolvableparam_size() != 1) {
-			std::cerr
-			<< "The passive wheel does not encode 1 parameter. Exiting."
-			<< std::endl;
+		if(!checkParamCount(bodyPart))
 			return boost::shared_ptr<Model>();
-		}
 
 		model.reset(
 				new PassiveWheelModel(odeWorld, odeSpace, id,
 						bodyPart.evolvableparam(0).paramvalue()));
 
 	} else if (bodyPart.type().compare(PART_TYPE_ACTIVE_WHEEL) == 0) {
-
-		if (bodyPart.evolvableparam_size() != 1) {
-			std::cerr
-			<< "The active wheel does not encode 1 parameter. Exiting."
-			<< std::endl;
+		if(!checkParamCount(bodyPart))
 			return boost::shared_ptr<Model>();
-		}
 
 		model.reset(
 				new ActiveWheelModel(odeWorld, odeSpace, id,
 						bodyPart.evolvableparam(0).paramvalue()));
 
 	} else if (bodyPart.type().compare(PART_TYPE_ACTIVE_WHEG) == 0) {
-
-		if (bodyPart.evolvableparam_size() != 1) {
-			std::cerr << "The active wheg does not encode 1 parameter. Exiting."
-			<< std::endl;
+		if(!checkParamCount(bodyPart))
 			return boost::shared_ptr<Model>();
-		}
 
 		model.reset(
 				new ActiveWhegModel(odeWorld, odeSpace, id,
@@ -410,6 +403,23 @@ boost::shared_ptr<Model> RobogenUtils::createModel(
 
 	return model;
 
+}
+
+bool checkParamCount(robogenMessage::BodyPart bodyPart){
+
+	std::string partType = bodyPart.type();
+	unsigned int paramNumber = PART_TYPE_PARAM_COUNT_MAP.at(partType);
+	if (bodyPart.evolvableparam_size() != paramNumber) {
+			std::cerr
+					<< "The "
+					<< partType
+					<<" prism does not encode "
+					<< paramNumber
+					<<" parameters. Exiting."
+					<< std::endl;
+			return false;
+		}
+	return true;
 }
 
 boost::shared_ptr<RenderModel> RobogenUtils::createRenderModel(

@@ -375,6 +375,8 @@ void RobotRepresentation::asyncEvaluateResult(double fitness) {
 bool RobotRepresentation::init() {
 
 	// Generate a core component
+	// Gael: TODO: Remove completly core_component
+	/*
 	boost::shared_ptr<PartRepresentation> corePart = PartRepresentation::create(
 			INVERSE_PART_TYPE_MAP.at(PART_TYPE_CORE_COMPONENT),
 			PART_TYPE_CORE_COMPONENT, 0, std::vector<double>());
@@ -385,7 +387,18 @@ bool RobotRepresentation::init() {
 	bodyTree_ = corePart;
 	idToPart_[PART_TYPE_CORE_COMPONENT] = boost::weak_ptr<PartRepresentation>(
 			corePart);
+	*/
 
+	boost::shared_ptr<PartRepresentation> corePart = PartRepresentation::create(
+			INVERSE_PART_TYPE_MAP.at(PART_TYPE_PARAM_PRISM_CORE),
+			PART_TYPE_PARAM_PRISM_CORE, 0, std::vector<double>());
+	if (!corePart) {
+		std::cout << "Failed to create root node" << std::endl;
+		return false;
+	}
+	bodyTree_ = corePart;
+	idToPart_[PART_TYPE_PARAM_PRISM_CORE] = boost::weak_ptr<PartRepresentation>(
+			corePart);
 	// TODO abstract this to a different function so it doesn't
 	// duplicate what we have below
 
@@ -503,9 +516,16 @@ bool RobotRepresentation::init(std::string robotTextFile) {
 		}
 		if (it->second.lock()->getSensors().size()) {
 			sensorMap[it->first] = it->second.lock()->getSensors().size();
+			std::cout << "FOUND " << it->second.lock()->getSensors().size() << "SENSORS" << std::endl;
+		}
+		else
+		{
+			std::cout << "NOOOO SENSOR FOUND " << std::endl;
 		}
 
 	}
+
+	std::cout << "END OF LOOKING FOR SENSORS" << std::endl;
 
 	neuralNetwork_.reset(new NeuralNetworkRepresentation(sensorMap, motorMap));
 	unsigned int neuronType;
@@ -854,6 +874,11 @@ bool RobotRepresentation::insertPart(const std::string& parentPartId,
 
 	// create Neurons in NeuralNetwork
 	std::vector<std::string> sensors = newPart->getSensors();
+	//Gael Degug*************************************************************
+			std::cout 	<<"*********RobotRepresentation::insertPart********** "
+						
+					 	<<std::endl;
+	//***********************************************************************
 	for (unsigned int i = 0; i < sensors.size(); ++i) {
 		neuralNetwork_->insertNeuron(ioPair(newPart->getId(), i),
 				NeuronRepresentation::INPUT, NeuronRepresentation::SIMPLE);

@@ -64,6 +64,8 @@ namespace robogen {
 #define PART_TYPE_LIGHT_SENSOR 		"LightSensor"
 #define PART_TYPE_PARAM_JOINT 		"ParametricJoint"
 #define PART_TYPE_PARAM_PRISM		"ParametricPrism"
+#define PART_TYPE_PARAM_PRISM_CORE	"ParametricPrismCore"
+#define PART_TYPE_PARAM_PRISM_CORE_NO_IMU	"ParametricPrismCoreNoIMU"
 
 #define SENSOR_TYPE_IMU_SENSOR_ELEMENT	"ImuSensorElement"
 #define SENSOR_TYPE_LIGHT_SENSOR		"LightSensor"

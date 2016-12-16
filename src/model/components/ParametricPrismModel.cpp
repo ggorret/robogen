@@ -92,14 +92,17 @@ namespace robogen {
 /* create a mass for the ConvexPolygon
  * Currently we use a cylinder as approx of prism
  * TODO: Implement the exact moment of inertia and his mass for a general prism
+ *		 Create a table with the weight related with the number of faces
  */
 	dMass ParametricPrismModel::computePolygon_dMass(){
-		    dMass massOde;
-
-		    dMassSetCylinderTotal (&massOde, MASS_PRISM, 3, distanceFaceCenter_, HEIGHTZ);
-		   	// To use density instead of mass, use the following function
-			//void dMassSetCylinder (&massOde, inGrams(), int direction, dReal radius, dReal length);
-			return massOde;
+	    // To use density instead of mass, use the following function
+		//void dMassSetCylinder (&massOde, inGrams(), int direction, dReal radius, dReal length);
+	    dMass massOde;
+	    if(isCore_)
+	    	dMassSetCylinderTotal (&massOde, MASS_CORE, 3, distanceFaceCenter_, HEIGHTZ);
+	    else	
+	    	dMassSetCylinderTotal (&massOde, MASS_PRISM, 3, distanceFaceCenter_, HEIGHTZ);
+	   	return massOde;
 	}
 
 /*Create an Array with the normal vector of each face (X,Y,Z) with its
