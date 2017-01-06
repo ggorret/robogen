@@ -1,4 +1,5 @@
-#include"ParseHelpers.h"
+#include "ParseHelpers.h"
+#include "utils/ParsingUtils.h"
 
 namespace robogen{
 
@@ -134,7 +135,7 @@ bool robotTextFileReadWeightLine(std::ifstream &file, std::string &from,
 		fromIoId = std::atoi(match[2].first);
 		to.assign(match[3]);
 		toIoId = std::atoi(match[4].first);
-		value = std::atof(match[5].first);
+		value = parse_double(match[5].first);
 		return true;
 	} else {
 		// additional info if poor formatting, i.e. line not empty
@@ -223,7 +224,7 @@ bool robotTextFileReadParamsLine(std::ifstream &file, std::string &node,
 		std::vector<std::string> strs;
 		boost::split(strs, paramsString, boost::is_any_of(" "));
 		for (unsigned int i=0; i<strs.size(); i++) {
-			params.push_back(std::atof(strs[i].c_str()));
+			params.push_back(parse_double(strs[i].c_str()));
 		}
 		return true;
 	} else if (boost::regex_match(line.c_str(), match, biasRx)) {
@@ -234,7 +235,7 @@ bool robotTextFileReadParamsLine(std::ifstream &file, std::string &node,
 		node.assign(match[1]);
 		ioId = std::atoi(match[2].first);
 		type = NeuronRepresentation::SIGMOID;
-		params.push_back(std::atof(match[3].first));
+		params.push_back(parse_double(match[3].first));
 		return true;
 	} else {
 		// additional info if poor formatting, i.e. line not empty
