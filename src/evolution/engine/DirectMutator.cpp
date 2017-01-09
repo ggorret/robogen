@@ -1,5 +1,5 @@
 /*
- * @(#) Mutator.cpp   1.0   Sep 2, 2013
+ * @(#) DirectMutator.cpp   1.0   Sep 2, 2013
  *
  * Titus Cieslewski (dev@titus-c.ch)
  * Andrea Maesani (andrea.maesani@epfl.ch)
@@ -30,262 +30,27 @@
 
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/uniform_01.hpp>
-#include "evolution/engine/Mutator.h"
 #include "evolution/representation/SubRobotRepresentation.h"
 #include "PartList.h"
 
-//#define DEBUG_MUTATE
-
-#define PRINT_ERRORS (false)
-
-#ifdef DEBUG_MUTATE
-#define PRINT_ERRORS (true)
-#endif
+#include "DirectMutator.h"
 
 namespace robogen {
-
-bool debugto=true;
-
-IndirectMutator::~IndirectMutator() {
+//helper function for mutations
+//TODO move this somewhere else
+double clipD(double value, double min, double max) {
+	if ( value < min )
+		return min;
+	if (value > max )
+		return max;
+	return value;
 }
 
-IndirectMutator::IndirectMutator(boost::shared_ptr<EvolverConfiguration> conf,
-		boost::random::mt19937 &rng) :
-		conf_(conf), rng_(rng){
+//Definition of special types for the mutation function.
 
-	addHiddenNeuronDist_ = boost::random::bernoulli_distribution<double>(
-			conf->pAddHiddenNeuron);
+typedef bool (DirectMutator::*DirMutationOperator)(boost::shared_ptr<RobotRepresentation>&);
 
-	oscillatorNeuronDist_ = boost::random::bernoulli_distribution<double>(
-			conf->pOscillatorNeuron);
-
-
-	if (conf_->evolutionMode == EvolverConfiguration::FULL_EVOLVER) {
-		subtreeRemovalDist_ =
-				boost::random::bernoulli_distribution<double>(
-						conf->bodyOperatorProbability
-						[EvolverConfiguration::SUBTREE_REMOVAL]);
-		subtreeDuplicationDist_ =
-				boost::random::bernoulli_distribution<double>(
-						conf->bodyOperatorProbability
-						[EvolverConfiguration::SUBTREE_DUPLICATION]);
-		subtreeSwapDist_ =
-				boost::random::bernoulli_distribution<double>(
-						conf->bodyOperatorProbability
-						[EvolverConfiguration::SUBTREE_SWAPPING]);
-		nodeInsertDist_ =
-				boost::random::bernoulli_distribution<double>(
-						conf->bodyOperatorProbability
-						[EvolverConfiguration::NODE_INSERTION]);
-		nodeRemovalDist_ =
-				boost::random::bernoulli_distribution<double>(
-						conf->bodyOperatorProbability
-						[EvolverConfiguration::NODE_REMOVAL]);
-		paramMutateDist_ =
-				boost::random::bernoulli_distribution<double>(
-						conf->bodyOperatorProbability
-						[EvolverConfiguration::PARAMETER_MODIFICATION]);
-	}
-}
-
-void IndirectMutator::growBodyRandomly(boost::shared_ptr<RobotRepresentation>& robot) {
-	boost::random::uniform_int_distribution<> dist(conf_->minNumInitialParts,
-			conf_->maxNumInitialParts);
-	unsigned int numPartsToAdd = dist(rng_);
-
-	for (unsigned int i = 0; i < numPartsToAdd; i++) {
-		bool success = false;
-
-		for (unsigned int attempt = 0;
-				(attempt < conf_->maxBodyMutationAttempts); ++attempt) {
-
-			boost::shared_ptr<RobotRepresentation> newBot = boost::shared_ptr<
-					RobotRepresentation>(new RobotRepresentation(*robot.get()));
-			success = this->insertNode(newBot);
-			int errorCode;
-
-			std::vector<std::pair<std::string, std::string> > affectedBodyParts;
-			if (success
-					&& BodyVerifier::verify(*newBot.get(), errorCode,
-							affectedBodyParts, PRINT_ERRORS)) {
-				robot = newBot;
-				robot->setDirty();
-				break;
-			}
-		}
-	}
-}
-
-bool IndirectMutator::insertNode(boost::shared_ptr<RobotRepresentation>& robot){
-	const SubRobotRepresentation::IdPartMap& idPartMap = robot->getBody();
-
-	if ( idPartMap.size() >= conf_->maxBodyParts )
-		return false;
-
-	boost::random::uniform_int_distribution<> dist(0, idPartMap.size() - 1);
-
-	SubRobotRepresentation::IdPartMap::const_iterator parent;
-	boost::shared_ptr<PartRepresentation> parentPart;
-
-	// find a parent with arity > 0 (will exist, since at the very least will
-	// be the core)
-
-	do {
-		parent = idPartMap.begin();
-		std::advance(parent, dist(rng_));
-		parentPart = parent->second.lock();
-	} while (parentPart->getArity() == 0);
-
-	// Sample a random slot
-	boost::random::uniform_int_distribution<> slotDist(0,
-												parentPart->getArity() - 1);
-	unsigned int parentSlot = slotDist(rng_);
-	
-	// Select node type
-	boost::random::uniform_int_distribution<> distType(0,
-			conf_->allowedBodyPartTypes.size() - 1);
-	char type = conf_->allowedBodyPartTypes[distType(rng_)];
-
-	// Randomly generate node orientation
-	boost::random::uniform_int_distribution<> orientationDist(0, 3);
-	unsigned int curOrientation = orientationDist(rng_);
-
-	// Randomly generate parameters
-	unsigned int nParams = PART_TYPE_PARAM_COUNT_MAP.at(PART_TYPE_MAP.at(type));
-	std::vector<double> parameters;
-	boost::random::uniform_01<double> paramDist;
-	for (unsigned int i = 0; i < nParams; ++i) {
-		parameters.push_back(paramDist(rng_));
-	}
-
-	// Create the new part
-	boost::shared_ptr<PartRepresentation> newPart = PartRepresentation::create(
-			type, "", curOrientation, parameters);
-
-	unsigned int newPartSlot = 0;
-
-	if (newPart->getArity() > 0) {
-		// Generate a random slot in the new node, if it has arity > 0
-		boost::random::uniform_int_distribution<> distNewPartSlot(0,
-				newPart->getArity() - 1);
-		newPartSlot = distNewPartSlot(rng_);
-	}
-	// otherwise just keep it at 0... inserting part will fail if arity is 0 and
-	// there were previously parts attached to the parent's chosen slot
-
-	return robot->insertPart(parent->first, parentSlot, newPart, newPartSlot,
-			oscillatorNeuronDist_(rng_) ? NeuronRepresentation::OSCILLATOR :
-					NeuronRepresentation::SIGMOID, PRINT_ERRORS);
-			//todo other neuron types?
-}
-
-void IndirectMutator::randomizeBrain(boost::shared_ptr<RobotRepresentation>& robot) {
-
-}
-
-std::vector<boost::shared_ptr<RobotRepresentation> > IndirectMutator::createOffspring(
-			boost::shared_ptr<RobotRepresentation> parent1,
-			boost::shared_ptr<RobotRepresentation> parent2) {
-
-	std::vector<boost::shared_ptr<RobotRepresentation> > offspring;
-
-	offspring.push_back(boost::shared_ptr<RobotRepresentation>(new
-			RobotRepresentation(*parent1.get())));
-
-
-	// only allow crossover if doing just brain mutation
-	if (conf_->evolutionMode == EvolverConfiguration::BRAIN_EVOLVER
-			&& parent2) {
-		offspring.push_back(boost::shared_ptr<RobotRepresentation>(new
-				RobotRepresentation(*parent2.get())));
-		//this->crossover(offspring[0], offspring[1]);
-	}
-
-	// Mutate
-	for(size_t i = 0; i < offspring.size(); ++i) {
-		this->mutate(offspring[i]);
-	}
-
-	/*
-	std::cout << "Offspring rules are the following:\n";
-	for(int i=0; i< offspring.size(); i++){
-		if(offspring[i]->getGrammar()->getNumberOfRules()==0){
-			std::cout << "Robot " << i << " has no rules...\n";
-		} else {
-			std::cout << "Robot " << i << ";\n" << offspring[i]->getGrammar()->getRule(0)->getSuccessor()->toString() << std::endl;
-		}
-	}
-	*/
-
-	return offspring;
-}
-
-void IndirectMutator::mutate(boost::shared_ptr<RobotRepresentation>& robot){
-
-	//We generate a new robot, a clone
-	boost::shared_ptr<RobotRepresentation> finalBot = boost::shared_ptr<RobotRepresentation>(new RobotRepresentation(*robot.get()));
-
-	//We get the grammar from this clone
-	boost::shared_ptr<Grammar> tmpGrammar = finalBot->getGrammar();
-
-	//We MUTATE THE GRAMMAR AAAAAAHHHHHH
-	boost::shared_ptr<SubRobotRepresentation> predecessor = boost::shared_ptr<SubRobotRepresentation>(new SubRobotRepresentation());
-	//We give a core to the predecessor, at least, to not be mean.
-	predecessor->init();
-
-	std::vector<double> parameters;
-
-	boost::shared_ptr<PartRepresentation> newPart = PartRepresentation::create(
-		'F',
-		"",
-		0, //orientation
-		parameters);
-
-	SubRobotRepresentation::IdPartMap::const_iterator targetPart = predecessor->getBody().begin();
-
-	predecessor->insertPart(targetPart->first,
-			0, //Parent slot
-			newPart,
-			0, //newPartSlot
-			0 ? NeuronRepresentation::OSCILLATOR :
-			NeuronRepresentation::SIGMOID,
-			false);
-
-	int attempt=0;
-	if(tmpGrammar->getNumberOfRules()<5){
-		while(attempt<10000){
-			tmpGrammar->addRule(boost::shared_ptr<Grammar::Rule>(new Grammar::Rule(1, predecessor, this->rng_, this->conf_)));
-
-			/*
-			std::cout << "The rule is:\n\n";
-			std::cout << tmpGrammar->getRule(tmpGrammar->getNumberOfRules()-1)->getSuccessor()->toString() << std::endl;
-			std::cout << std::endl;
-			*/
-
-			bool success = finalBot->buildFromGrammar();
-
-			//std::cout << finalBot->toString() << std::endl;
-
-			attempt++;
-
-			int errorCode;
-			std::vector<std::pair<std::string, std::string> > affectedBodyParts;
-			if (success && BodyVerifier::verify(*finalBot.get(), errorCode,
-								affectedBodyParts, PRINT_ERRORS)) {
-
-				if (!finalBot->check()) {
-					std::cout << "Consistency check failed in mutation operator " << std::endl;
-				}
-
-				robot = finalBot;
-				robot->setDirty();
-				break;
-			} else {
-				tmpGrammar->popLastRule();
-			}
-		}
-	}
-}
+typedef std::pair<DirMutationOperator, boost::random::bernoulli_distribution<double> > DirMutOpPair;
 
 DirectMutator::DirectMutator(boost::shared_ptr<EvolverConfiguration> conf,
 		boost::random::mt19937 &rng) :
@@ -453,16 +218,6 @@ bool DirectMutator::mutate(boost::shared_ptr<RobotRepresentation>& robot) {
 	return mutated;
 }
 
-//helper function for mutations
-
-double clip(double value, double min, double max) {
-	if ( value < min )
-		return min;
-	if (value > max )
-		return max;
-	return value;
-}
-
 bool DirectMutator::mutateBrain(boost::shared_ptr<RobotRepresentation>& robot) {
 	bool mutated = false;
 
@@ -495,7 +250,7 @@ bool DirectMutator::mutateBrain(boost::shared_ptr<RobotRepresentation>& robot) {
 			mutated = true;
 			*weights[i] += (normalDistribution_(rng_) *
 					conf_->brainWeightSigma);
-			*weights[i] = clip(*weights[i], conf_->minBrainWeight,
+			*weights[i] = clipD(*weights[i], conf_->minBrainWeight,
 					conf_->maxBrainWeight);
 
 		}
@@ -508,7 +263,7 @@ bool DirectMutator::mutateBrain(boost::shared_ptr<RobotRepresentation>& robot) {
 				mutated = true;
 				*params[paramCounter] += (normalDistribution_(rng_) *
 						conf_->brainBiasSigma);
-				*params[paramCounter] = clip(*params[paramCounter],
+				*params[paramCounter] = clipD(*params[paramCounter],
 						conf_->minBrainBias, conf_->maxBrainBias);
 			}
 			paramCounter+=1;
@@ -517,14 +272,14 @@ bool DirectMutator::mutateBrain(boost::shared_ptr<RobotRepresentation>& robot) {
 				mutated = true;
 				*params[paramCounter] += (normalDistribution_(rng_) *
 						conf_->brainBiasSigma);
-				*params[paramCounter] = clip(*params[paramCounter],
+				*params[paramCounter] = clipD(*params[paramCounter],
 						conf_->minBrainBias, conf_->maxBrainBias);
 			}
 			if (brainMutate_(rng_)) {
 				mutated = true;
 				*params[paramCounter+1] += (normalDistribution_(rng_) *
 						conf_->brainTauSigma);
-				*params[paramCounter+1] = clip(*params[paramCounter+1],
+				*params[paramCounter+1] = clipD(*params[paramCounter+1],
 						conf_->minBrainTau, conf_->maxBrainTau);
 			}
 			paramCounter += 2;
@@ -533,21 +288,21 @@ bool DirectMutator::mutateBrain(boost::shared_ptr<RobotRepresentation>& robot) {
 				mutated = true;
 				*params[paramCounter] += (normalDistribution_(rng_) *
 						conf_->brainPeriodSigma);
-				*params[paramCounter] = clip(*params[paramCounter],
+				*params[paramCounter] = clipD(*params[paramCounter],
 						conf_->minBrainPeriod, conf_->maxBrainPeriod);
 			}
 			if (brainMutate_(rng_)) {
 				mutated = true;
 				*params[paramCounter+1] += (normalDistribution_(rng_) *
 						conf_->brainPhaseOffsetSigma);
-				*params[paramCounter+1] = clip(*params[paramCounter+1],
+				*params[paramCounter+1] = clipD(*params[paramCounter+1],
 						conf_->minBrainPhaseOffset, conf_->maxBrainPhaseOffset);
 			}
 			if (brainMutate_(rng_)) {
 				mutated = true;
 				*params[paramCounter+2] += (normalDistribution_(rng_) *
 						conf_->brainAmplitudeSigma);
-				*params[paramCounter+2] = clip(*params[paramCounter+2],
+				*params[paramCounter+2] = clipD(*params[paramCounter+2],
 						conf_->minBrainAmplitude, conf_->maxBrainAmplitude);
 			}
 			paramCounter += 3;
@@ -616,12 +371,6 @@ bool DirectMutator::crossover(boost::shared_ptr<RobotRepresentation>& a,
 	return true;
 }
 
-typedef bool (DirectMutator::*MutationOperator)(
-		boost::shared_ptr<RobotRepresentation>&);
-
-typedef std::pair<MutationOperator,
-		boost::random::bernoulli_distribution<double> > MutOpPair;
-
 bool DirectMutator::mutateBody(boost::shared_ptr<RobotRepresentation>& robot) {
 #ifdef DEBUG_MUTATE
 	std::cout << "mutating body" << std::endl;
@@ -632,7 +381,7 @@ bool DirectMutator::mutateBody(boost::shared_ptr<RobotRepresentation>& robot) {
 	* only an empty face in order to not change the probability of removeSubtree
 	*/
 	bool mutated = false;
-	MutOpPair mutOpPairs[] = { 
+	DirMutOpPair mutOpPairs[] = { 
 			std::make_pair(&DirectMutator::removeSubtree, subtreeRemovalDist_), 
 			std::make_pair(&DirectMutator::mutateArity, arityMutateDist_),
 			std::make_pair(&DirectMutator::duplicateSubtree, subtreeDuplicationDist_),
@@ -641,10 +390,10 @@ bool DirectMutator::mutateBody(boost::shared_ptr<RobotRepresentation>& robot) {
 			std::make_pair(&DirectMutator::removeNode, nodeRemovalDist_), 
 			std::make_pair(&DirectMutator::mutateParams, paramMutateDist_) };
 
-	int numOperators = sizeof(mutOpPairs) / sizeof(MutOpPair);
+	int numOperators = sizeof(mutOpPairs) / sizeof(DirMutOpPair);
 	for (int i = 0; i < numOperators; ++i) {
 
-		MutationOperator mutOp = mutOpPairs[i].first;
+		DirMutationOperator mutOp = mutOpPairs[i].first;
 		boost::random::bernoulli_distribution<double> dist =
 				mutOpPairs[i].second;
 
@@ -949,7 +698,7 @@ bool DirectMutator::mutateParams(boost::shared_ptr<RobotRepresentation>& robot) 
 		params[paramToMutate] += (normalDistribution_(rng_) *
 									conf_->bodyParamSigma);
 
-		params[paramToMutate] = clip(params[paramToMutate], 0., 1.);
+		params[paramToMutate] = clipD(params[paramToMutate], 0., 1.);
 		return ( fabs(oldParamValue - params[paramToMutate]) >
 					RobogenUtils::EPSILON_2 );
 	}

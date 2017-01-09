@@ -118,7 +118,8 @@ bool EvolverConfiguration::init(std::string configFileName) {
 
 	insertionProb = 1;
 	deletionProb=0;
-	maxSuccessorPieces=2;
+	maxSuccessorParts=2;
+	maxPredecessorParts=1;
 
 
 	pOscillatorNeuron = 0.0;
@@ -175,9 +176,27 @@ bool EvolverConfiguration::init(std::string configFileName) {
 		("deletionProbability",
 				boost::program_options::value<double>(),
 				"Deletion probability for Rule creation.")
-		("maxSuccessorPieces",
+		("maxSuccessorParts",
 				boost::program_options::value<int>(),
-				"Maximum number of pieces in successor (indirect mode)")
+				"Maximum number of parts in successor (indirect mode)")
+		("maxPredecessorParts",
+				boost::program_options::value<int>(),
+				"Maximum number of parts in predecessor (indirect mode)")
+		("pSwapRules",
+				boost::program_options::value<double>(),
+				"Probability of swap rule mutation (indirect mode)")
+		("pCreateRule",
+				boost::program_options::value<double>(),
+				"Probability of rule creation (indirect mode)")
+		("pSuppressRule",
+				boost::program_options::value<double>(),
+				"Probability of rule suppression (indirect mode)")
+		("pMutateRules",
+				boost::program_options::value<double>(),
+				"Probability of rule mutation (indirect mode)")
+		("pMutateAxiom",
+				boost::program_options::value<double>(),
+				"Probability of axiom mutation (indirect mode)")
 		("neatParamsFile",
 				boost::program_options::value<std::string>(&neatParamsFile),
 				"File for NEAT/HyperNEAT specific params")
@@ -340,15 +359,94 @@ bool EvolverConfiguration::init(std::string configFileName) {
 		return false;
 	}
 
-	// parse maxSuccessorPieces
-	if (vm.count("maxSuccessorPieces") == 0){
-		maxSuccessorPieces = 2;
-	} else if(vm["maxSuccessorPieces"].as<int>()<=6 && vm["maxSuccessorPieces"].as<int>()>=0){
-		maxSuccessorPieces = vm["maxSuccessorPieces"].as<int>();
+	// parse maxSuccessorParts
+	if (vm.count("maxSuccessorParts") == 0){
+		maxSuccessorParts = 2;
+	} else if(vm["maxSuccessorParts"].as<int>()<=6 && vm["maxSuccessorParts"].as<int>()>=0){
+		maxSuccessorParts = vm["maxSuccessorParts"].as<int>();
 	} else {
-		std::cerr << "Specified number of pieces for successor \"" <<
-				vm["maxSuccessorPieces"].as<int>() <<
+		std::cerr << "Specified number of parts for successor \"" <<
+				vm["maxSuccessorParts"].as<int>() <<
 				"\" out of range. Must be between 0 and 6 (inclusive)"
+				 << std::endl;
+		return false;
+	}
+
+	// parse maxPredecessorParts
+	if (vm.count("maxPredecessorParts") == 0){
+		maxPredecessorParts = 2;
+	} else if(vm["maxPredecessorParts"].as<int>()<=6 && vm["maxPredecessorParts"].as<int>()>=0){
+		maxPredecessorParts = vm["maxPredecessorParts"].as<int>();
+	} else {
+		std::cerr << "Specified number of parts for successor \"" <<
+				vm["maxPredecessorParts"].as<int>() <<
+				"\" out of range. Must be between 0 and 6 (inclusive)"
+				 << std::endl;
+		return false;
+	}
+
+
+	// parse pSwapRule
+	if (vm.count("pSwapRules") == 0){
+		pSwapRules = 0.2;
+	} else if(vm["pSwapRules"].as<double>()<=1 && vm["pSwapRules"].as<double>()>=0){
+		pSwapRules = vm["pSwapRules"].as<double>();
+	} else {
+		std::cerr << "Specified probability to swap rules \"" <<
+				vm["pSwapRules"].as<double>() <<
+				"\" out of range. Must be between 0 and 1 (inclusive)"
+				 << std::endl;
+		return false;
+	}
+
+		// parse pSuppressRules
+	if (vm.count("pSuppressRule") == 0){
+		pSuppressRule = 0.4;
+	} else if(vm["pSuppressRule"].as<double>()<=1 && vm["pSuppressRule"].as<double>()>=0){
+		pSuppressRule = vm["pSuppressRule"].as<double>();
+	} else {
+		std::cerr << "Specified probability to suppress rules \"" <<
+				vm["pSuppressRule"].as<double>() <<
+				"\" out of range. Must be between 0 and 1 (inclusive)"
+				 << std::endl;
+		return false;
+	}
+
+		// parse pCreateRule
+	if (vm.count("pCreateRule") == 0){
+		pCreateRule = 0.9;
+	} else if(vm["pCreateRule"].as<double>()<=1 && vm["pCreateRule"].as<double>()>=0){
+		pCreateRule = vm["pCreateRule"].as<double>();
+	} else {
+		std::cerr << "Specified probability to create rules \"" <<
+				vm["pCreateRule"].as<double>() <<
+				"\" out of range. Must be between 0 and 1 (inclusive)"
+				 << std::endl;
+		return false;
+	}
+
+		// parse pMutateRule
+	if (vm.count("pMutateRule") == 0){
+		pMutateRule = 0.4;
+	} else if(vm["pMuatateRule"].as<double>()<=1 && vm["pMutateRule"].as<double>()>=0){
+		pMutateRule = vm["pMutateRule"].as<double>();
+	} else {
+		std::cerr << "Specified probability to mutate rules \"" <<
+				vm["pMutateRule"].as<double>() <<
+				"\" out of range. Must be between 0 and 1 (inclusive)"
+				 << std::endl;
+		return false;
+	}
+
+		// parse pMutateAxiom
+	if (vm.count("pMutateAxiom") == 0){
+		pMutateAxiom = 0.4;
+	} else if(vm["pMuatateAxiom"].as<double>()<=1 && vm["pMutateAxiom"].as<double>()>=0){
+		pMutateAxiom = vm["pMutateAxiom"].as<double>();
+	} else {
+		std::cerr << "Specified probability to mutate axiom \"" <<
+				vm["pMutateAxiom"].as<double>() <<
+				"\" out of range. Must be between 0 and 1 (inclusive)"
 				 << std::endl;
 		return false;
 	}

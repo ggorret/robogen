@@ -551,6 +551,10 @@ bool SubRobotRepresentation::insertPart(const std::string& parentPartId,
 bool SubRobotRepresentation::removePart(const std::string& partId,
 		bool printErrors) {
 
+	if(idToPart_.find(partId)==idToPart_.end()){
+		std::cout << "Trying to access non existing node" << std::endl;
+	}
+
 	boost::shared_ptr<PartRepresentation> nodeToRemove =
 			idToPart_[partId].lock();
 

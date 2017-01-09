@@ -64,15 +64,21 @@ namespace robogen{
             };
 
             /**
+             * Map for the param vector mutations
+             */
+            typedef std::pair< std::string, std::vector<double> > paramMutationMap;
+
+            /**
              * Type defined to simplify the insertion and deletion of nodes
              */
             typedef bool (SubRobotRepresentation::*RuleOperation)(boost::shared_ptr<SubRobotRepresentation>&);
             
             /**
-             * Produces a random rule with the given successor and predecessor
+             * Produces a random rule with the given predecessor
              * @param iterations number of times the rule is applied
              * @param predecessor SubRobot of the pattern to search
-             * @param successor SubRobot of the replace pattern
+             * @param rng a random generator
+             * @param conf the evolver configuration
              */
             Rule(int iterations, boost::shared_ptr<SubRobotRepresentation> predecessor,
                 boost::random::mt19937 &rng, boost::shared_ptr<EvolverConfiguration> conf);
@@ -83,6 +89,18 @@ namespace robogen{
              */
             bool matchesPredecessor(boost::shared_ptr<PartRepresentation> candidate);
 
+            /**
+             * Muatet the steps of deletion or insertion of the Rule
+             * @param rng Random No. Generator to ensure repeatibility.
+             * @param conf Evolution configuration file
+             * @return True if the operation was successfull
+             */
+            bool mutate(boost::random::mt19937 &rng, boost::shared_ptr<EvolverConfiguration> conf);
+
+            /**
+             * Apply the rule for one single iteration in the node from a robot
+             * @param candidate PartRepresentation, a node in the robot to be compared.a
+             */
             bool applyRule(boost::shared_ptr<SubRobotRepresentation> robot, boost::shared_ptr<PartRepresentation> node);
 
             /**
@@ -90,37 +108,58 @@ namespace robogen{
              */
             int getNumIterations(void);
 
-            boost::shared_ptr<SubRobotRepresentation> getSuccessor(void);
-
+            /**
+             * Return the predecessor of the Rule
+             */
             boost::shared_ptr<SubRobotRepresentation> getPredecessor(void);
 
-            effectMap getDelMap(){
-                return *this->deleteMap_;
-            }
-            effectMap getBuiMap(){
-                return *this->buildMap_;
-            }
+            /**
+             * Return the successor of the Rule
+             */
+            boost::shared_ptr<SubRobotRepresentation> getSuccessor(void);
         private:
-            boost::shared_ptr<effectMap> buildMap_;
+
+            /*The killer Rule: includes or not the root element of the successor.
+            */
+            bool rootRule;
+
+            /**
+             * Map from the intact predecessor
+             */
             boost::shared_ptr<effectMap> deleteMap_;
+
+            /**
+             * Map from the final successor
+             */
+            boost::shared_ptr<effectMap> buildMap_;
 
             /**
              * Number of iterations for the rules.
              */
             int iterations_;
-
-            bool removePart();
             
             /**
              * Predecessor of the rule
              */
             boost::shared_ptr<SubRobotRepresentation> predecessor_;
             
+            /**
+             * Deletion steps (IDs) from the predecessor
+             */
             std::vector< std::string > deletions_;
+
+            /**
+             * Insertions steps from the predecessor
+             */
             std::vector<buildStep> insertions_;
 
             /**
-             * Successor of the rule (just for clarity purposes)
+             * Parameter mutation to the successor
+             */
+            std::vector<paramMutationMap> paramMutations_;
+
+            /**
+             * Successor of the rule
              */
             boost::shared_ptr<SubRobotRepresentation> successor_;
         };
@@ -130,6 +169,12 @@ namespace robogen{
          * @param axiom shared pointer to a subrobotrepresentation which will become the axiom.
          */
         Grammar(boost::shared_ptr<SubRobotRepresentation> axiom);
+
+        /**
+         * Default constructor, which takes an axiom and a set o rules.
+         * @param axiom shared pointer to a subrobotrepresentation which will become the axiom.
+         */
+        Grammar(boost::shared_ptr<SubRobotRepresentation> axiom, std::vector< boost::shared_ptr<Rule> > rules);
 
         /**
          * Get a shared pointer to the axiom
@@ -145,9 +190,33 @@ namespace robogen{
 
         boost::shared_ptr<Rule> getRule(int id);
 
+        /**
+         * Adds a new rule to the grammar
+         * @param newRule Shared pointer to the rule to be appended
+         * @return Weather it was possible to add the rule or not
+         */
         bool addRule(boost::shared_ptr<Rule> newRule);
+
+        /**
+         * Swaps two rules in the rule vector.
+         * @param rule1 Index to the first rule
+         * @param rule2 Index to the second rule
+         * @return True if the operation was successfull
+         */
+        bool swapRules(int rule1, int rule2);
+
         void popLastRule(void);
+
+        /**
+         * Kick out a rule from the grammar, by index.
+         * @param indx index of the rule to be erased
+         * @return True if the operation was successfull
+        */
+        bool popRuleAt(int indx);
+
         bool lastBuildFailed();
+
+        std::vector< boost::shared_ptr<Rule> > getAllRules(void);
     private:
         /**
          * Axiom of the grammar
