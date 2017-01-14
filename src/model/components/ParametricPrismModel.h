@@ -42,8 +42,10 @@ namespace robogen {
 
 		public:
 
-			static const float MASS_PRISM;
-			static const float MASS_CORE;
+			float MASS_PRISM[6]; 		//It's an Array with
+										//its first element is the 3-faced prism mass 
+										//and its last element is the 8-faced prism mass
+			static const float MASS_CHIPSET;
 			static const float WIDTHY;
 			static const float HEIGHTZ;
 			static const float SLOT_THICKNESS;

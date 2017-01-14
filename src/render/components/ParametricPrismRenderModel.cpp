@@ -92,13 +92,15 @@ bool ParametricPrismRenderModel::initRenderModel() {
 	}
 	return true;
 */
-
-
 	if (isDebugActive()) {
 		this->showDebugView();
 	} else {
 		std::vector<osg::Vec4> colors;
-		colors.push_back(osg::Vec4(1,0,0,1));
+		if(boost::dynamic_pointer_cast<ParametricPrismModel>
+			(this->getModel())-> isCore())
+				colors.push_back(osg::Vec4(1,0,0,0.7));
+		else
+				colors.push_back(osg::Vec4(1,1,1,0.7));
 		this->attachGeoms(colors);
 	}
 

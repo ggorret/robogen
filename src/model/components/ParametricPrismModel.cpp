@@ -35,8 +35,7 @@ namespace robogen {
 *			funtion ParametricPrismModel::computePolygon_dMass
 *
 *************************************************************/
-	const float ParametricPrismModel::MASS_PRISM = inGrams(20);
-	const float ParametricPrismModel::MASS_CORE = MASS_PRISM + inGrams(34.3);
+	const float ParametricPrismModel::MASS_CHIPSET = inGrams(34.3);
 	const float ParametricPrismModel::WIDTHY = inMm(41);
 	const float ParametricPrismModel::HEIGHTZ = inMm(35.5);
 	const float ParametricPrismModel::SLOT_THICKNESS = inMm(1.5);
@@ -56,6 +55,15 @@ namespace robogen {
 				ParametricPrismModel::initialisationDone_ = false;
 				ParametricPrismModel::topFaceSlotId_ = faceNumber_;
 				ParametricPrismModel::bottomFaceSlotId_ = faceNumber_ + 1;
+
+				ParametricPrismModel::MASS_PRISM[0] = inGrams(5.7);  //3-faced (weighted)
+				ParametricPrismModel::MASS_PRISM[1]	= inGrams(10.3); //4-faced (weighted)
+				ParametricPrismModel::MASS_PRISM[2]	= inGrams(12.0); //5-faced (weighted)
+				ParametricPrismModel::MASS_PRISM[3]	= inGrams(14.3); //6-faced (extrapolated)
+				ParametricPrismModel::MASS_PRISM[4]	= inGrams(16.6); //7-faced (extrapolated)
+				ParametricPrismModel::MASS_PRISM[5]	= inGrams(19.9); //8-faced (extrapolated)
+
+
 	}
 
 	ParametricPrismModel::~ParametricPrismModel() {
@@ -98,10 +106,13 @@ namespace robogen {
 	    // To use density instead of mass, use the following function
 		//void dMassSetCylinder (&massOde, inGrams(), int direction, dReal radius, dReal length);
 	    dMass massOde;
+	    float mass = MASS_PRISM[faceNumber_ - 3];
+
+
 	    if(isCore_)
-	    	dMassSetCylinderTotal (&massOde, MASS_CORE, 3, distanceFaceCenter_, HEIGHTZ);
-	    else	
-	    	dMassSetCylinderTotal (&massOde, MASS_PRISM, 3, distanceFaceCenter_, HEIGHTZ);
+	    	mass = mass + MASS_CHIPSET;	
+	    	
+	   	dMassSetCylinderTotal (&massOde, mass, 3, distanceFaceCenter_, HEIGHTZ);
 	   	return massOde;
 	}
 
